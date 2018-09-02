@@ -1,0 +1,7 @@
+/.cproject
+/.project
+/lib
+/.idea
+/bin
+/.build
+/cmake-build-debug
