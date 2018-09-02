@@ -379,14 +379,14 @@ void zookeeper_dtor(zend_resource *res)
 
 PHPX_EXTENSION()
 {
-    Extension *ext = new Extension("zookeeper", "0.0.1");
+    Extension *ext = new Extension("swoole_zookeeper", "0.0.1");
 
     ext->onStart = [ext]() noexcept
     {
         ext->registerResource("zhandle_t", zookeeper_dtor);
 
         ext->registerConstant("QUEUE_VERSION", 1001);
-        Class *c = new Class("zookeeper");
+        Class *c = new Class("swoole\\zookeeper");
         c->addProperty("errCode", 0);
         c->addMethod(PHPX_ME(zookeeper, __construct));
         c->addMethod(PHPX_ME(zookeeper, create));
