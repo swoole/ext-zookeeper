@@ -1,8 +1,9 @@
-#include "phpx.h"
-#include "zookeeper.h"
-#include<assert.h>
+#include <assert.h>
 #include <iostream>
 #include <string.h>
+
+#include "phpx.h"
+#include "zookeeper.h"
 
 using namespace php;
 using namespace std;
@@ -163,7 +164,18 @@ void my_stat_completion(int rc, const struct Stat *stat, const void *data)
 {
     fprintf(stderr, "%s: rc = %d Stat:\n", (char*) data, rc);
     dumpStat(stat);
-    free((void*) data);
+
+    QueryResult *result = (QueryResult *) data;
+    result->error = rc;
+    if (rc == ZOK)
+    {
+        result->retval = true;
+    }
+    else
+    {
+        result->retval = false;
+    }
+    result->running = false;
 }
 
 void my_silent_stat_completion(int rc, const struct Stat *stat, const void *data)
@@ -184,9 +196,10 @@ void my_silent_stat_completion(int rc, const struct Stat *stat, const void *data
 PHPX_METHOD(zookeeper, __construct)
 {
     auto host = args[0];
-    long recv_timeout = args[1].toInt();
+    double recv_timeout = args[1].toInt();
+    int recv_timeout_ms = recv_timeout * 1000;
     zoo_deterministic_conn_order(1);
-    zhandle_t *zh = zookeeper_init(host.toCString(), nullptr, recv_timeout, 0, NULL, 0);
+    zhandle_t *zh = zookeeper_init(host.toCString(), nullptr, recv_timeout_ms, 0, NULL, 0);
     _this.oSet<zhandle_t>("handle", "zhandle_t", zh);
 }
 
@@ -233,6 +246,49 @@ PHPX_METHOD(zookeeper, get)
     }
 }
 
+PHPX_METHOD(zookeeper, exists)
+{
+    struct timeval tv;
+    int events = ZOOKEEPER_READ;
+    zhandle_t *zh = _this.oGet<zhandle_t>("handle", "zhandle_t");
+    int fd, rc;
+    QueryResult result;
+    result.running = true;
+
+    rc = zookeeper_interest(zh, &fd, &events, &tv);
+    if (rc)
+    {
+        _error: _this.set("errCode", rc);
+        retval = false;
+        return;
+    }
+    rc = zoo_aexists(zh, args[0].toCString(), 0, my_stat_completion, &result);
+    if (rc)
+    {
+        goto _error;
+    }
+
+    while (result.running)
+    {
+        rc = zookeeper_interest(zh, &fd, &events, &tv);
+        if (rc)
+        {
+            goto _error;
+        }
+        rc = zookeeper_process(zh, events);
+        if (rc)
+        {
+            goto _error;
+        }
+    }
+
+    retval = result.retval;
+    if (result.error != 0)
+    {
+        _this.set("errCode", result.error);
+    }
+}
+
 PHPX_METHOD(zookeeper, create)
 {
     struct timeval tv;
@@ -248,7 +304,9 @@ PHPX_METHOD(zookeeper, create)
         retval = false;
         return;
     }
-    rc = zoo_acreate(zh, args[0].toCString(), args[1].toCString(), args[1].length(), &ZOO_OPEN_ACL_UNSAFE, 0,
+
+    long flags = args.count() >= 3 ? args[2].toInt() : 0;
+    rc = zoo_acreate(zh, args[0].toCString(), args[1].toCString(), args[1].length(), &ZOO_OPEN_ACL_UNSAFE, flags,
             my_string_completion_free_data, &result);
     if (rc)
     {
@@ -385,13 +443,19 @@ PHPX_EXTENSION()
     {
         ext->registerResource("zhandle_t", zookeeper_dtor);
 
-        ext->registerConstant("QUEUE_VERSION", 1001);
+        char version[64];
+        sprintf(version, "%d.%d.%d", ZOO_MAJOR_VERSION, ZOO_MINOR_VERSION, ZOO_PATCH_VERSION);
+        ext->registerConstant("ZOO_VERSION", version);
+        ext->registerConstant("ZOO_EPHEMERAL", ZOO_EPHEMERAL);
+        ext->registerConstant("ZOO_SEQUENCE", ZOO_SEQUENCE);
+
         Class *c = new Class("swoole\\zookeeper");
         c->addProperty("errCode", 0);
         c->addMethod(PHPX_ME(zookeeper, __construct));
         c->addMethod(PHPX_ME(zookeeper, create));
         c->addMethod(PHPX_ME(zookeeper, set));
         c->addMethod(PHPX_ME(zookeeper, get));
+        c->addMethod(PHPX_ME(zookeeper, exists));
         c->addMethod(PHPX_ME(zookeeper, delete));
         c->addMethod(PHPX_ME(zookeeper, setDebugLevel), STATIC);
         ext->registerClass(c);

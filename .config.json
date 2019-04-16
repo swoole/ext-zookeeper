@@ -1,15 +1,13 @@
 {
     "project": {
-        "name": "swoole_zookeeper"
+        "name": "swoole_zookeeper",
+	"type": "ext"
     },
     "build": {
-        "type" : "shared",
-        "target": "lib/swoole_zookeeper.so",
-        "ldflags": "-L/usr/lib/x86_64-linux-gnu -lcrypt -lresolv -lcrypt -lrt -lpng -lz -lcurl -lrt -lm -ldl -lnsl -lxml2 -lssl -lcrypto -lcurl -lxml2 -lxml2 -lcrypt -lxml2 -lxml2 -lxml2 -lssl -lcrypto -lcrypt -lphpx",
-        "cxxflags": "-std=c++11 -I/usr/local/include/php -I/usr/local/include/php/main -I/usr/local/include/php/TSRM -I/usr/local/include/php/Zend -I/usr/local/include/php/ext -I/usr/local/include/php/ext/date/lib",
-        "cflags": "-I/usr/local/include/php -I/usr/local/include/php/main -I/usr/local/include/php/TSRM -I/usr/local/include/php/Zend -I/usr/local/include/php/ext -I/usr/local/include/php/ext/date/lib"
-    },
-    "install": {
-        "target": "/usr/local/lib/php/extensions/debug-non-zts-20160303"
+        "ldflags": "",
+        "cxxflags": "",
+        "cflags": "",
+	"c_std": "",
+	"cxx_std" : ""
     }
 }
