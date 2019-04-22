@@ -423,6 +423,44 @@ PHPX_METHOD(zookeeper, delete)
     }
 }
 
+PHPX_METHOD(zookeeper, getChildren)
+{
+    struct timeval tv;
+    int events;
+    zhandle_t *zh = _this.oGet<zhandle_t>("handle", "zhandle_t");
+    int fd, rc;
+    QueryResult result;
+
+    rc = zookeeper_interest(zh, &fd, &events, &tv);
+    if (rc)
+    {
+        _error: _this.set("errCode", rc);
+        retval = false;
+        return;
+    }
+    rc = zoo_aget_children(zh, args[0].toCString(), 0, my_string_completion, &result);
+
+    while (result.running)
+    {
+        rc = zookeeper_interest(zh, &fd, &events, &tv);
+        if (rc)
+        {
+            goto _error;
+        }
+        rc = zookeeper_process(zh, events);
+        if (rc)
+        {
+            goto _error;
+        }
+    }
+
+    retval = result.retval;
+    if (result.error != 0)
+    {
+    _this.set("errCode", result.error);
+    }
+}
+
 PHPX_METHOD(zookeeper, setDebugLevel)
 {
     long level = args[0].toInt();
@@ -457,6 +495,7 @@ PHPX_EXTENSION()
         c->addMethod(PHPX_ME(zookeeper, get));
         c->addMethod(PHPX_ME(zookeeper, exists));
         c->addMethod(PHPX_ME(zookeeper, delete));
+        c->addMethod(PHPX_ME(zookeeper, getChildren));
         c->addMethod(PHPX_ME(zookeeper, setDebugLevel), STATIC);
         ext->registerClass(c);
     };
