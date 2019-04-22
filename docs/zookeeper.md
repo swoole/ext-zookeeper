@@ -1,5 +1,5 @@
 
-#zookeeper安装过程
+# zookeeper安装过程
 
 ###安装环境
 
