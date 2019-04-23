@@ -1,14 +1,14 @@
 # phpx 安装过程
 
-###安装环境
+### 安装环境
 
 	ubuntu18.04
 	
-###1.下载安装包
+### 1.下载安装包
 
 	https://github.com/swoole/phpx
 	
-###2.安装composer
+### 2.安装composer
 
 
 	wget https://pecl.php.net/get/phar-2.0.0.tgz
@@ -19,11 +19,11 @@
 	
 	sudo mv composer /usr/local/bin
 	
-###3.注意
+### 3.注意
 
 最好把phpize 和 php-config都丢到/usr/bin里防止找不到
 	
-###4.运行phpx下的shell
+### 4.运行phpx下的shell
 
 首先进入到phpx的目录
 
