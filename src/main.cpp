@@ -115,28 +115,27 @@ void my_silent_data_completion(int rc, const char *value, int value_len, const s
 
 void my_strings_completion(int rc, const struct String_vector *strings, const void *data)
 {
-    struct timeval tv;
-    int sec;
-    int usec;
-    int i;
-
-    gettimeofday(&tv, 0);
-    sec = tv.tv_sec - startTime.tv_sec;
-    usec = tv.tv_usec - startTime.tv_usec;
-    fprintf(stderr, "time = %d msec\n", sec * 1000 + usec / 1000);
-    fprintf(stderr, "%s: rc = %d\n", (char*) data, rc);
-    if (strings)
+    QueryResult *result = (QueryResult *) data;
+    result->error = rc;
+    if (rc == ZOK)
     {
-        for (i = 0; i < strings->count; i++)
+        Array array;
+        if (strings)
         {
-            fprintf(stderr, "\t%s\n", strings->data[i]);
+            int i;
+            for (i = 0; i < strings->count; i++)
+            {
+                array.append(strings->data[i]);
+            }
         }
+
+        result->retval = array;
     }
-    free((void*) data);
-    gettimeofday(&tv, 0);
-    sec = tv.tv_sec - startTime.tv_sec;
-    usec = tv.tv_usec - startTime.tv_usec;
-    fprintf(stderr, "time = %d msec\n", sec * 1000 + usec / 1000);
+    else
+    {
+        result->retval = false;
+    }
+    result->running = false;
 }
 
 void my_strings_stat_completion(int rc, const struct String_vector *strings, const struct Stat *stat, const void *data)
@@ -438,7 +437,7 @@ PHPX_METHOD(zookeeper, getChildren)
         retval = false;
         return;
     }
-    rc = zoo_aget_children(zh, args[0].toCString(), 0, my_string_completion, &result);
+    rc = zoo_aget_children(zh, args[0].toCString(), 0, my_strings_completion, &result);
 
     while (result.running)
     {
