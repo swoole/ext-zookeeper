@@ -429,6 +429,12 @@ PHPX_METHOD(zookeeper, setDebugLevel)
     zoo_set_debug_level((ZooLogLevel) level);
 }
 
+PHPX_METHOD(zookeeper, getState)
+{
+    zhandle_t *zh = _this.oGet<zhandle_t>("handle", "zhandle_t");
+    retval = zoo_state(zh);
+}
+
 void zookeeper_dtor(zend_resource *res)
 {
     zhandle_t *zh = static_cast<zhandle_t *>(res->ptr);
@@ -458,6 +464,7 @@ PHPX_EXTENSION()
         c->addMethod(PHPX_ME(zookeeper, exists));
         c->addMethod(PHPX_ME(zookeeper, delete));
         c->addMethod(PHPX_ME(zookeeper, setDebugLevel), STATIC);
+        c->addMethod(PHPX_ME(zookeeper, getState));
         ext->registerClass(c);
     };
 
