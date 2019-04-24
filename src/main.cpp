@@ -115,28 +115,27 @@ void my_silent_data_completion(int rc, const char *value, int value_len, const s
 
 void my_strings_completion(int rc, const struct String_vector *strings, const void *data)
 {
-    struct timeval tv;
-    int sec;
-    int usec;
-    int i;
-
-    gettimeofday(&tv, 0);
-    sec = tv.tv_sec - startTime.tv_sec;
-    usec = tv.tv_usec - startTime.tv_usec;
-    fprintf(stderr, "time = %d msec\n", sec * 1000 + usec / 1000);
-    fprintf(stderr, "%s: rc = %d\n", (char*) data, rc);
-    if (strings)
+    QueryResult *result = (QueryResult *) data;
+    result->error = rc;
+    if (rc == ZOK)
     {
-        for (i = 0; i < strings->count; i++)
+        Array array;
+        if (strings)
         {
-            fprintf(stderr, "\t%s\n", strings->data[i]);
+            int i;
+            for (i = 0; i < strings->count; i++)
+            {
+                array.append(strings->data[i]);
+            }
         }
+
+        result->retval = array;
     }
-    free((void*) data);
-    gettimeofday(&tv, 0);
-    sec = tv.tv_sec - startTime.tv_sec;
-    usec = tv.tv_usec - startTime.tv_usec;
-    fprintf(stderr, "time = %d msec\n", sec * 1000 + usec / 1000);
+    else
+    {
+        result->retval = false;
+    }
+    result->running = false;
 }
 
 void my_strings_stat_completion(int rc, const struct String_vector *strings, const struct Stat *stat, const void *data)
@@ -423,6 +422,44 @@ PHPX_METHOD(zookeeper, delete)
     }
 }
 
+PHPX_METHOD(zookeeper, getChildren)
+{
+    struct timeval tv;
+    int events;
+    zhandle_t *zh = _this.oGet<zhandle_t>("handle", "zhandle_t");
+    int fd, rc;
+    QueryResult result;
+
+    rc = zookeeper_interest(zh, &fd, &events, &tv);
+    if (rc)
+    {
+        _error: _this.set("errCode", rc);
+        retval = false;
+        return;
+    }
+    rc = zoo_aget_children(zh, args[0].toCString(), 0, my_strings_completion, &result);
+
+    while (result.running)
+    {
+        rc = zookeeper_interest(zh, &fd, &events, &tv);
+        if (rc)
+        {
+            goto _error;
+        }
+        rc = zookeeper_process(zh, events);
+        if (rc)
+        {
+            goto _error;
+        }
+    }
+
+    retval = result.retval;
+    if (result.error != 0)
+    {
+    _this.set("errCode", result.error);
+    }
+}
+
 PHPX_METHOD(zookeeper, setDebugLevel)
 {
     long level = args[0].toInt();
@@ -457,6 +494,7 @@ PHPX_EXTENSION()
         c->addMethod(PHPX_ME(zookeeper, get));
         c->addMethod(PHPX_ME(zookeeper, exists));
         c->addMethod(PHPX_ME(zookeeper, delete));
+        c->addMethod(PHPX_ME(zookeeper, getChildren));
         c->addMethod(PHPX_ME(zookeeper, setDebugLevel), STATIC);
         ext->registerClass(c);
     };
