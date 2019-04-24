@@ -246,7 +246,7 @@ PHPX_METHOD(zookeeper, get)
     }
 }
 
-PHPX_METHOD(zookeeper, add_auth)
+PHPX_METHOD(zookeeper, addAuth)
 {
     struct timeval tv;
     int events;
@@ -500,7 +500,7 @@ PHPX_EXTENSION()
         Class *c = new Class("swoole\\zookeeper");
         c->addProperty("errCode", 0);
         c->addMethod(PHPX_ME(zookeeper, __construct));
-        c->addMethod(PHPX_ME(zookeeper, add_auth));
+        c->addMethod(PHPX_ME(zookeeper, addAuth));
         c->addMethod(PHPX_ME(zookeeper, create));
         c->addMethod(PHPX_ME(zookeeper, set));
         c->addMethod(PHPX_ME(zookeeper, get));
