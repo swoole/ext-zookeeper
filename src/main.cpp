@@ -246,6 +246,54 @@ PHPX_METHOD(zookeeper, get)
     }
 }
 
+PHPX_METHOD(zookeeper, add_auth)
+{
+    struct timeval tv;
+    int events;
+    zhandle_t *zh = _this.oGet<zhandle_t>("handle", "zhandle_t");
+    int fd, rc;
+    QueryResult result;
+    result.running = true;
+
+    if (args.count() > 1)
+    {
+        return ;
+    }
+
+    rc = zookeeper_interest(zh, &fd, &events, &tv);
+    if (rc)
+    {
+        _error: _this.set("errCode", rc);
+        retval = false;
+        return;
+    }
+    rc = zoo_add_auth(zh, args[0].toCString(), args[1].toCString(),args[1].length(), my_void_completion, &result);
+    if (rc)
+    {
+        goto _error;
+    }
+
+    while (result.running)
+    {
+        rc = zookeeper_interest(zh, &fd, &events, &tv);
+        if (rc)
+        {
+            goto _error;
+        }
+        rc = zookeeper_process(zh, events);
+        if (rc)
+        {
+            goto _error;
+        }
+    }
+
+    retval = result.retval;
+    if (result.error != 0)
+    {
+        _this.set("errCode", result.error);
+    }
+}
+
 PHPX_METHOD(zookeeper, exists)
 {
     struct timeval tv;
@@ -452,6 +500,7 @@ PHPX_EXTENSION()
         Class *c = new Class("swoole\\zookeeper");
         c->addProperty("errCode", 0);
         c->addMethod(PHPX_ME(zookeeper, __construct));
+        c->addMethod(PHPX_ME(zookeeper, add_auth));
         c->addMethod(PHPX_ME(zookeeper, create));
         c->addMethod(PHPX_ME(zookeeper, set));
         c->addMethod(PHPX_ME(zookeeper, get));
