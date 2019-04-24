@@ -4,7 +4,7 @@
 	"type": "ext"
     },
     "build": {
-        "ldflags": "-undefined dynamic_lookup",
+        "ldflags": "",
         "cxxflags": "",
         "cflags": "",
 	"c_std": "",
