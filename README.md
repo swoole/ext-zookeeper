@@ -1,6 +1,17 @@
 # ext-zookeeper
 依赖 `Swoole`和`PHP-X`。
 
+已支持的指令
+----
+
+- [x] create
+- [x] get
+- [x] set
+- [x] delete
+- [x] exists
+- [x] getACL
+- [ ] setACL
+
 安装 Swoole
 ----
 ```shell
@@ -17,6 +28,8 @@ Build
 phpx build -v -d
 phpx install
 ```
+
+
 
 安装中可能遇到的问题
 
