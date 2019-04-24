@@ -4,9 +4,12 @@
 
 #include "phpx.h"
 #include "zookeeper.h"
-
+#ifndef EXT_ZOOKEEPR_ZK_ZEND_H
+#include "zk_zend.h"
+#endif
 using namespace php;
 using namespace std;
+using namespace zookeeperZend;
 
 zhandle_t *handle = NULL;
 int connected = 0;
@@ -185,6 +188,26 @@ void my_silent_stat_completion(int rc, const struct Stat *stat, const void *data
     if (rc == ZOK)
     {
         result->retval = true;
+    }
+    else
+    {
+        result->retval = false;
+    }
+    result->running = false;
+}
+
+void my_acl_stat_completion(int rc, struct ACL_vector *acl,struct Stat *stat, const void *data)
+{
+    QueryResult *result = (QueryResult *) data;
+    result->error = rc;
+    if (rc == ZOK)
+    {
+        Array res;
+        //把acl转化到数组
+        zKLib::convert_acl_to_array(&res,acl);
+        //把stat转化到数组
+        zKLib::convert_stat_to_array(&res,stat);
+        result->retval = res;
     }
     else
     {
@@ -435,6 +458,65 @@ void zookeeper_dtor(zend_resource *res)
     zookeeper_close(zh);
 }
 
+PHPX_METHOD(zookeeper, getAcl)
+{
+    int events;
+    struct timeval tv;
+    QueryResult result;
+    result.running = true;
+    int fd, rc;
+    struct ACL_vector zh_acl;
+    struct Stat zh_state;
+    zhandle_t *zh = _this.oGet<zhandle_t>("handle", "zhandle_t");
+
+    //等待连接完成
+    rc = zookeeper_interest(zh, &fd, &events, &tv);
+
+    //参数检查
+    if(args.count() != 1)
+    {
+        error(E_WARNING,"You can only pass one parameter");
+        retval = false;
+        return;
+    }
+
+    if(!args[0].isString())
+    {
+        error(E_WARNING,"Path must be string");
+        retval = false;
+        return;
+    }
+
+    if (rc)
+    {
+        _error: _this.set("errCode", rc);
+        retval = false;
+        return;
+    }
+    rc = zoo_aget_acl(zh,args[0].toCString(),my_acl_stat_completion, &result);
+    while (result.running)
+    {
+        rc = zookeeper_interest(zh, &fd, &events, &tv);
+        if (rc)
+        {
+            goto _error;
+        }
+        rc = zookeeper_process(zh, events);
+        if (rc)
+        {
+            goto _error;
+        }
+    }
+
+    retval = result.retval;
+    if (result.error != 0)
+    {
+        _this.set("errCode", result.error);
+    }
+
+    return;
+}
+
 PHPX_EXTENSION()
 {
     Extension *ext = new Extension("swoole_zookeeper", "0.0.1");
@@ -455,6 +537,7 @@ PHPX_EXTENSION()
         c->addMethod(PHPX_ME(zookeeper, create));
         c->addMethod(PHPX_ME(zookeeper, set));
         c->addMethod(PHPX_ME(zookeeper, get));
+        c->addMethod(PHPX_ME(zookeeper, getAcl));
         c->addMethod(PHPX_ME(zookeeper, exists));
         c->addMethod(PHPX_ME(zookeeper, delete));
         c->addMethod(PHPX_ME(zookeeper, setDebugLevel), STATIC);
