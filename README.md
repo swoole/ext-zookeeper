@@ -40,7 +40,7 @@ phpx install
 
 	说明 PHP-X 没有安装成功，请重新安装 PHP-X
 
-3. 执行 *phpx build -v -d*，出现 fatal error: swoole/include/sock_hook.h No such file or directory
+3. 执行 *phpx build -v -d*，出现 fatal error: swoole/include/socket_hook.h No such file or directory
 	
 	请重新安装编译安装 swoole
 
