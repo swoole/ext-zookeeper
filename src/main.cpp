@@ -329,7 +329,7 @@ PHPX_METHOD(zookeeper, get)
 }
 
 
-PHPX_METHOD(zookeeper, get_acl)
+PHPX_METHOD(zookeeper, getAcl)
 {
     struct timeval tv;
     zhandle_t *zh = _this.oGet<zhandle_t>("handle", "zhandle_t");
@@ -626,7 +626,7 @@ PHPX_EXTENSION()
         c->addMethod(PHPX_ME(zookeeper, get));
         c->addMethod(PHPX_ME(zookeeper, exists));
         c->addMethod(PHPX_ME(zookeeper, delete));
-        c->addMethod(PHPX_ME(zookeeper, get_acl));
+        c->addMethod(PHPX_ME(zookeeper, getAcl));
         c->addMethod(PHPX_ME(zookeeper, getChildren));
         c->addMethod(PHPX_ME(zookeeper, setDebugLevel), STATIC);
         ext->registerClass(c);
