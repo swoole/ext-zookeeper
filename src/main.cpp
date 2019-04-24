@@ -651,12 +651,6 @@ PHPX_METHOD(zookeeper, getState)
     retval = zoo_state(zh);
 }
 
-PHPX_METHOD(zookeeper, isRecoverable)
-{
-    zhandle_t *zh = _this.oGet<zhandle_t>("handle", "zhandle_t");
-    retval = !is_unrecoverable(zh);
-}
-
 PHPX_METHOD(zookeeper, getClientId)
 {
     const clientid_t *cid;
@@ -701,7 +695,6 @@ PHPX_EXTENSION()
         c->addMethod(PHPX_ME(zookeeper, getChildren));
         c->addMethod(PHPX_ME(zookeeper, setDebugLevel), STATIC);
         c->addMethod(PHPX_ME(zookeeper, getState));
-        c->addMethod(PHPX_ME(zookeeper, isRecoverable));
         c->addMethod(PHPX_ME(zookeeper, getClientId));
         ext->registerClass(c);
     };
