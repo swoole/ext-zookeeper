@@ -194,7 +194,12 @@ void my_silent_stat_completion(int rc, const struct Stat *stat, const void *data
 }
 
 
-//参考https://github.com/andreiz/php-zookeeper/blob/master/php_zookeeper.c#L922
+/**
+ * C acl信息转换为php数组信息
+ * 参考https://github.com/andreiz/php-zookeeper/blob/master/php_zookeeper.c#L922
+ * @param aclv
+ * @param array
+ */
 static void php_aclv_to_array(const struct ACL_vector *aclv, Array *array)
 {
     Array *temp = new Array();
@@ -209,6 +214,11 @@ static void php_aclv_to_array(const struct ACL_vector *aclv, Array *array)
 }
 
 
+/**
+ * stats转转换php数组信息
+ * @param stat
+ * @param array
+ */
 static void php_stat_to_array(const struct Stat *stat, Array *array)
 {
     array->clean();
@@ -226,7 +236,7 @@ static void php_stat_to_array(const struct Stat *stat, Array *array)
 }
 
 /**
- * 获取acl回调方法
+ * 获取acl完成回调方法
  * @param rc
  * @param acl
  * @param stat
@@ -246,6 +256,7 @@ void my_acl_completion(int rc, struct ACL_vector *acl,struct Stat *stat, const v
         _array.append(*statArr);
         _array.append(*aclArr);
 
+        //返回两个数组，stat信息数组和，acl信息数组
         result->retval=_array;
     }
     else
