@@ -4,10 +4,10 @@
 function d($name, $url)
 {
     $root = dirname(__DIR__);
-    echo "{$root}/data/{$name}", '_____';
-    if (!file_exists("{$root}/data/{$name}")) {
+    echo "{$root}/.build/{$name}", '_____';
+    if (!file_exists("{$root}/.build/{$name}")) {
         echo 'fetch:', $name, PHP_EOL;
-        file_get_contents($url, "{$root}/data/{$name}");
+        file_get_contents($url, "{$root}/.build/{$name}");
     } else {
         echo 'ign:', $name, PHP_EOL;
     }
@@ -28,7 +28,7 @@ foreach($data as $name => $url) {
 $root = dirname(__DIR__);
 
 echo "handle phpx-src", PHP_EOL;
-echo `unzip {$root}/data/phpx.zip -d {$root}/data/phpx-src && cd {$root}/data/phpx-src/phpx-0.1.1 && cmake . && sudo make install`;
+echo `unzip {$root}/.build/phpx.zip -d {$root}/.build/phpx-src && cd {$root}/.build/phpx-src/phpx-0.1.1 && cmake . && sudo make install`;
 
 echo "handle swoole-src",  PHP_EOL;
-echo `unzip {$root}/data/swoole.zip -d {$root}/data/swoole-src && cd {$root}/data/swoole-src/swoole-src-4.3.3 && phpize && ./configure && make && sudo make install`;
+echo `unzip {$root}/.build/swoole.zip -d {$root}/.build/swoole-src && cd {$root}/.build/swoole-src/swoole-src-4.3.3 && phpize && ./configure && make && sudo make install`;
