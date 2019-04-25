@@ -666,7 +666,6 @@ PHPX_METHOD(zookeeper, setDeterministicConnOrder)
 {
     bool value = args[0].toBool();
     zoo_deterministic_conn_order(value);
-    retval = true;
 }
 
 void zookeeper_dtor(zend_resource *res)
