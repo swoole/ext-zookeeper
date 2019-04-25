@@ -651,6 +651,17 @@ PHPX_METHOD(zookeeper, getState)
     retval = zoo_state(zh);
 }
 
+PHPX_METHOD(zookeeper, getClientId)
+{
+    const clientid_t *cid;
+    zhandle_t *zh = _this.oGet<zhandle_t>("handle", "zhandle_t");
+    cid = zoo_client_id(zh);
+    Array rv = Array();
+    rv.append((long)cid->client_id);
+    rv.append((char *)cid->passwd);
+    retval = rv;
+}
+
 void zookeeper_dtor(zend_resource *res)
 {
     zhandle_t *zh = static_cast<zhandle_t *>(res->ptr);
@@ -684,6 +695,7 @@ PHPX_EXTENSION()
         c->addMethod(PHPX_ME(zookeeper, getChildren));
         c->addMethod(PHPX_ME(zookeeper, setDebugLevel), STATIC);
         c->addMethod(PHPX_ME(zookeeper, getState));
+        c->addMethod(PHPX_ME(zookeeper, getClientId));
         ext->registerClass(c);
     };
 
