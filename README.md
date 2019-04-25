@@ -5,20 +5,24 @@
 ----
 
 - [x] create
+- [x] addAuth
 - [x] get
 - [x] set
+- [x] getChildren
 - [x] delete
 - [x] exists
-- [x] getACL
-- [ ] setACL
+- [x] getAcl
+- [ ] setAcl
+- [x] getState
+- [x] getClientId
 
-安装 Swoole
+## 安装 Swoole
 ----
 ```shell
 pecl install swoole
 ```
 
-安装 PHP-X
+## 安装 PHP-X
 -----
 参考 [PHP-X 安装](https://github.com/swoole/phpx)
 
@@ -29,7 +33,7 @@ phpx build -v -d
 phpx install
 ```
 
-安装过程中可能遇到的问题
+## 安装过程中可能遇到的问题
 -----
 
 1. 安装完成后，执行 *php test/test.php*  报找不到 swoole\zookeeper 类
