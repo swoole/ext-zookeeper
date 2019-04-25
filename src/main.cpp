@@ -668,6 +668,21 @@ PHPX_METHOD(zookeeper, setDeterministicConnOrder)
     zoo_deterministic_conn_order(value);
 }
 
+PHPX_METHOD(zookeeper, setLogStream)
+{
+    php_stream *stream;
+    FILE *fp;
+    zval *z_stream = args[0].ptr();
+    stream = (php_stream *)zend_fetch_resource(Z_RES_P(z_stream), "stream", Z_RES_P(z_stream)->type);
+    if(NULL == stream){
+        return;
+    }
+    if (FAILURE == php_stream_cast(stream, PHP_STREAM_AS_STDIO, (void **) &fp, REPORT_ERRORS)) {
+        return;
+    }
+    zoo_set_log_stream(fp);
+}
+
 void zookeeper_dtor(zend_resource *res)
 {
     zhandle_t *zh = static_cast<zhandle_t *>(res->ptr);
@@ -703,6 +718,7 @@ PHPX_EXTENSION()
         c->addMethod(PHPX_ME(zookeeper, getState));
         c->addMethod(PHPX_ME(zookeeper, getClientId));
         c->addMethod(PHPX_ME(zookeeper, setDeterministicConnOrder), PUBLIC, new ArgInfo(1));
+        c->addMethod(PHPX_ME(zookeeper, setLogStream), PUBLIC, new ArgInfo(1));
         ext->registerClass(c);
     };
 
