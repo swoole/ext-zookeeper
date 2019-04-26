@@ -672,7 +672,15 @@ PHPX_METHOD(zookeeper, setLogStream)
 {
     php_stream *stream;
     FILE *fp;
-    zval *z_stream = args[0].ptr();
+    zval *z_stream;
+
+    if(!args.count()){
+        return;
+    }
+
+    _this.set("logStream", args[0]);
+    z_stream = args[0].ptr();
+
     stream = (php_stream *)zend_fetch_resource(Z_RES_P(z_stream), "stream", Z_RES_P(z_stream)->type);
     if(NULL == stream){
         return;
@@ -680,6 +688,7 @@ PHPX_METHOD(zookeeper, setLogStream)
     if (FAILURE == php_stream_cast(stream, PHP_STREAM_AS_STDIO, (void **) &fp, REPORT_ERRORS)) {
         return;
     }
+
     zoo_set_log_stream(fp);
 }
 
@@ -718,7 +727,7 @@ PHPX_EXTENSION()
         c->addMethod(PHPX_ME(zookeeper, getState));
         c->addMethod(PHPX_ME(zookeeper, getClientId));
         c->addMethod(PHPX_ME(zookeeper, setDeterministicConnOrder), PUBLIC, new ArgInfo(1));
-        c->addMethod(PHPX_ME(zookeeper, setLogStream), PUBLIC, new ArgInfo(1));
+        c->addMethod(PHPX_ME(zookeeper, setLogStream), PUBLIC);
         ext->registerClass(c);
     };
 
