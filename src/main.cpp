@@ -375,7 +375,7 @@ PHPX_METHOD(zookeeper, addAuth)
     QueryResult result;
     result.running = true;
 
-    if (args.count() > 1)
+    if (args.count() > 2)
     {
         return ;
     }
