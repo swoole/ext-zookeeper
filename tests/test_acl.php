@@ -6,7 +6,7 @@ go(function () {
     $zk = new zookeeper("127.0.0.1:2181", 2.5);
 
 
-    $path = "/test234";
+    $path = "/test2345";
     $zk->create($path, 'rango');
 
     $re = $zk->addAuth("digest","zookeeper:zookeeper");
