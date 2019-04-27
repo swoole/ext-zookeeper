@@ -6,4 +6,6 @@
 /bin
 /.build
 /cmake-build-debug
+CMakeLists.txt
+core
 /.vscode

@@ -4,9 +4,12 @@
 
 #include "phpx.h"
 #include "zookeeper.h"
-
+#ifndef EXT_ZOOKEEPR_ZK_ZEND_H
+#include "zk_zend.h"
+#endif
 using namespace php;
 using namespace std;
+using namespace zookeeperZend;
 
 zhandle_t *handle = NULL;
 int connected = 0;
@@ -192,6 +195,41 @@ void my_silent_stat_completion(int rc, const struct Stat *stat, const void *data
     result->running = false;
 }
 
+void my_acl_stat_completion(int rc, struct ACL_vector *acl,struct Stat *stat, const void *data)
+{
+    QueryResult *result = (QueryResult *) data;
+    result->error = rc;
+    if (rc == ZOK)
+    {
+        Array res;
+        //把acl转化到数组
+        zKLib::convert_acl_to_array(&res,acl);
+        //把stat转化到数组
+        zKLib::convert_stat_to_array(&res,stat);
+        result->retval = res;
+    }
+    else
+    {
+        result->retval = false;
+    }
+    result->running = false;
+}
+
+void my_set_acl_completion(int rc, const void *data)
+{
+    QueryResult *result = (QueryResult *) data;
+    result->error = rc;
+    if (rc == ZOK)
+    {
+        result->retval = true;
+    }
+    else
+    {
+        result->retval = false;
+    }
+    result->running = false;
+}
+
 
 /**
  * C acl信息转换为php数组信息
@@ -337,7 +375,7 @@ PHPX_METHOD(zookeeper, addAuth)
     QueryResult result;
     result.running = true;
 
-    if (args.count() > 1)
+    if (args.count() > 2)
     {
         return ;
     }
@@ -668,6 +706,101 @@ void zookeeper_dtor(zend_resource *res)
     zookeeper_close(zh);
 }
 
+
+
+PHPX_METHOD(zookeeper, setAcl)
+{
+    struct ACL_vector *zookeeper_acl;
+    QueryResult result;
+    long version = -1;
+    int events;
+    int fd, rc;
+    struct timeval tv;
+    //至少有一个参数
+    if(args.count() < 1)
+    {
+        error(E_WARNING, "must be have one param");
+        fail:
+            retval = false;
+            return;
+    }
+
+    //如果第一个参数不是一个字符串
+    if(!(args[0].isString()))
+    {
+        error(E_WARNING, "first param must be string");
+        goto fail;
+    }
+
+
+    //版本号必须是一个整数
+    if(args.count() > 1 && args.count() == 2)
+    {
+        if(!(args[1].isArray()))
+        {
+            error(E_WARNING, "second param must be array");
+            goto fail;
+        }
+    }
+
+    if(args.count() == 3)
+    {
+        if(!(args[2].isInt())) {
+            error(E_WARNING, "third param must be int");
+            goto fail;
+        }
+
+        version = args[2].toInt();
+    }
+
+
+    Array acl_array(args[1]);
+    zookeeper_acl = zKLib::convert_array_to_acl(&acl_array);
+    if(!(zookeeper_acl))
+    {
+        error(E_WARNING, "acl array set error");
+        goto fail;
+    }
+
+    int  a=1;
+
+    //初始化结构体
+    zhandle_t *zh = _this.oGet<zhandle_t>("handle","zhandle_t");
+    rc = zookeeper_interest(zh, &fd, &events, &tv);
+    if (rc)
+    {
+        _error: _this.set("errCode", rc);
+        retval = false;
+        return;
+    }
+    rc = zoo_aset_acl(zh,args[0].toCString(),version,zookeeper_acl,my_set_acl_completion,&result);
+
+    zKLib::free_acl_struct(zookeeper_acl);
+
+    while(result.running)
+    {
+        rc = zookeeper_interest(zh, &fd, &events, &tv);
+        if (rc)
+        {
+            goto _error;
+        }
+        rc = zookeeper_process(zh, events);
+        if (rc)
+        {
+            goto _error;
+        }
+    }
+
+    retval = result.retval;
+    if (result.error != 0)
+    {
+        _this.set("errCode", result.error);
+    }
+
+    return;
+
+}
+
 PHPX_EXTENSION()
 {
     Extension *ext = new Extension("swoole_zookeeper", "0.0.1");
@@ -684,6 +817,12 @@ PHPX_EXTENSION()
 
         Class *c = new Class("swoole\\zookeeper");
         c->addProperty("errCode", 0);
+        c->addConstant("PERM_READ",ZOO_PERM_READ);
+        c->addConstant("PERM_WRITE",ZOO_PERM_WRITE);
+        c->addConstant("PERM_ALL",ZOO_PERM_ALL);
+        c->addConstant("PERM_ADMIN",ZOO_PERM_ADMIN);
+        c->addConstant("PERM_CREATE",ZOO_PERM_CREATE);
+        c->addConstant("PERM_DELETE",ZOO_PERM_DELETE);
         c->addMethod(PHPX_ME(zookeeper, __construct));
         c->addMethod(PHPX_ME(zookeeper, create));
         c->addMethod(PHPX_ME(zookeeper, addAuth));
@@ -691,6 +830,7 @@ PHPX_EXTENSION()
         c->addMethod(PHPX_ME(zookeeper, get));
         c->addMethod(PHPX_ME(zookeeper, exists));
         c->addMethod(PHPX_ME(zookeeper, delete));
+        c->addMethod(PHPX_ME(zookeeper, setAcl));
         c->addMethod(PHPX_ME(zookeeper, getAcl));
         c->addMethod(PHPX_ME(zookeeper, getChildren));
         c->addMethod(PHPX_ME(zookeeper, setDebugLevel), STATIC);
