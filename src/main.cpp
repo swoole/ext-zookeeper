@@ -675,7 +675,13 @@ PHPX_METHOD(zookeeper, setLogStream)
     zval *z_stream;
 
     if(!args.count()){
+        _return_null:
         return;
+    }
+
+    if(!args[0].isResource()){
+        error(E_WARNING, "expects parameter 1 to be resource");
+        goto _return_null;
     }
 
     _this.set("logStream", args[0]);
@@ -683,10 +689,10 @@ PHPX_METHOD(zookeeper, setLogStream)
 
     stream = (php_stream *)zend_fetch_resource(Z_RES_P(z_stream), "stream", Z_RES_P(z_stream)->type);
     if(NULL == stream){
-        return;
+        goto _return_null;
     }
     if (FAILURE == php_stream_cast(stream, PHP_STREAM_AS_STDIO, (void **) &fp, REPORT_ERRORS)) {
-        return;
+        goto _return_null;
     }
 
     zoo_set_log_stream(fp);
@@ -714,6 +720,7 @@ PHPX_EXTENSION()
 
         Class *c = new Class("swoole\\zookeeper");
         c->addProperty("errCode", 0);
+        c->addProperty("logStream", Variant(), PRIVATE);
         c->addMethod(PHPX_ME(zookeeper, __construct));
         c->addMethod(PHPX_ME(zookeeper, create));
         c->addMethod(PHPX_ME(zookeeper, addAuth));
