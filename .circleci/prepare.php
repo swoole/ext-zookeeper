@@ -32,6 +32,10 @@ $data = [
     ],
 ];
 
+if (!file_exists("{$root}/data")) {
+    mkdir("{$root}/data", 0777, true);
+}
+
 foreach ($data as $value) {
     foreach($value['url'] as $name => $url) {
         getResource($name, $url);
