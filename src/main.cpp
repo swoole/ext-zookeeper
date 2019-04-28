@@ -700,6 +700,42 @@ PHPX_METHOD(zookeeper, getClientId)
     retval = rv;
 }
 
+PHPX_METHOD(zookeeper, setDeterministicConnOrder)
+{
+    bool value = args[0].toBool();
+    zoo_deterministic_conn_order(value);
+}
+
+PHPX_METHOD(zookeeper, setLogStream)
+{
+    php_stream *stream;
+    FILE *fp;
+    zval *z_stream;
+
+    if(!args.count()){
+        _return_null:
+        return;
+    }
+
+    if(!args[0].isResource()){
+        error(E_WARNING, "expects parameter 1 to be resource");
+        goto _return_null;
+    }
+
+    _this.set("logStream", args[0]);
+    z_stream = args[0].ptr();
+
+    stream = (php_stream *)zend_fetch_resource(Z_RES_P(z_stream), "stream", Z_RES_P(z_stream)->type);
+    if(NULL == stream){
+        goto _return_null;
+    }
+    if (FAILURE == php_stream_cast(stream, PHP_STREAM_AS_STDIO, (void **) &fp, REPORT_ERRORS)) {
+        goto _return_null;
+    }
+
+    zoo_set_log_stream(fp);
+}
+
 void zookeeper_dtor(zend_resource *res)
 {
     zhandle_t *zh = static_cast<zhandle_t *>(res->ptr);
@@ -817,12 +853,15 @@ PHPX_EXTENSION()
 
         Class *c = new Class("swoole\\zookeeper");
         c->addProperty("errCode", 0);
+        c->addProperty("logStream", Variant(), PRIVATE);
+
         c->addConstant("PERM_READ",ZOO_PERM_READ);
         c->addConstant("PERM_WRITE",ZOO_PERM_WRITE);
         c->addConstant("PERM_ALL",ZOO_PERM_ALL);
         c->addConstant("PERM_ADMIN",ZOO_PERM_ADMIN);
         c->addConstant("PERM_CREATE",ZOO_PERM_CREATE);
         c->addConstant("PERM_DELETE",ZOO_PERM_DELETE);
+
         c->addMethod(PHPX_ME(zookeeper, __construct));
         c->addMethod(PHPX_ME(zookeeper, create));
         c->addMethod(PHPX_ME(zookeeper, addAuth));
@@ -836,6 +875,8 @@ PHPX_EXTENSION()
         c->addMethod(PHPX_ME(zookeeper, setDebugLevel), STATIC);
         c->addMethod(PHPX_ME(zookeeper, getState));
         c->addMethod(PHPX_ME(zookeeper, getClientId));
+        c->addMethod(PHPX_ME(zookeeper, setDeterministicConnOrder), PUBLIC, new ArgInfo(1));
+        c->addMethod(PHPX_ME(zookeeper, setLogStream), PUBLIC);
         ext->registerClass(c);
     };
 
