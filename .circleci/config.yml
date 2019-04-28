@@ -17,21 +17,42 @@ jobs:
       # - image: circleci/mysql:5.7-ram
       #
       # - image: redis:2.8.19
+      - image: zookeeper
 
     steps:
       - checkout
 
       - run: 
-          name: run local
-          command: sudo sed -i 's/deb.debian.org/mirrors.ustc.edu.cn/g' /etc/apt/sources.list && sudo sed -i 's|security.debian.org/debian-security|mirrors.ustc.edu.cn/debian-security|g' /etc/apt/sources.list
+          name: replace apt mirror if in local
+          command: if [ -n $LOCAL ]; then sudo sed -i 's/deb.debian.org/mirrors.ustc.edu.cn/g' /etc/apt/sources.list && sudo sed -i 's|security.debian.org/debian-security|mirrors.ustc.edu.cn/debian-security|g' /etc/apt/sources.list; fi;
       
       - run:
+          name: apt update
+          command: sudo apt update
+
+      - run:
           name: install cmake
-          command: sudo apt update && sudo apt install -y cmake
+          command: sudo apt install -y cmake libxml2-dev libssl-dev libncurses5-dev libcurl4-openssl-dev libedit-dev
 
-      - run: php -f ./.circleci/prepare.php
+      - run:
+          name: copy zip file if in local
+          command: if [ -n $LOCAL ]; then cp -r /tmp/data/* /home/circleci/project/data/ ; fi;
 
-      - run: php ./.build/phpx build && sudo php ./.build/phpx install
+      - run: 
+          name: prepare phpx, swoole 
+          command: php -f ./.circleci/prepare.php
+
+      - run:
+          name: build ext-zookeeper 
+          command: php ./data/phpx.php build && sudo php ./data/phpx.php install
+      
+      - run: 
+          name: run ldconfig
+          command: sudo ldconfig
+
+      - run: 
+          name: disable xdebug
+          command: sudo rm -rf /usr/local/etc/php/conf.d/docker-php-ext-xdebug.ini
 
       - run:
           name: enable zk
@@ -41,6 +62,6 @@ jobs:
           name: enable swoole
           command: sudo cp .circleci/docker-php-ext-swoole.ini /usr/local/etc/php/conf.d/
 
-      - run: php -m
-
-      - run: ./tests/start.sh
+      - run: 
+          name: run tests
+          command: php -f ./tests/test.php

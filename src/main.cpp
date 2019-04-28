@@ -48,10 +48,10 @@ void dumpStat(const struct Stat *stat)
     ctime_r(&tmtime, tmtimes);
     ctime_r(&tctime, tctimes);
 
-    fprintf(stderr, "\tctime = %s\tczxid=%ld\n"
-            "\tmtime=%s\tmzxid=%ld\n"
+    fprintf(stderr, "\tctime = %s\tczxid=%lld\n"
+            "\tmtime=%s\tmzxid=%lld\n"
             "\tversion=%x\taversion=%x\n"
-            "\tephemeralOwner = %ld\n", tctimes, stat->czxid, tmtimes, stat->mzxid, stat->version, stat->aversion,
+            "\tephemeralOwner = %lld\n", tctimes, stat->czxid, tmtimes, stat->mzxid, stat->version, stat->aversion,
             stat->ephemeralOwner);
 }
 
@@ -259,17 +259,17 @@ static void php_aclv_to_array(const struct ACL_vector *aclv, Array *array)
 static void php_stat_to_array(const struct Stat *stat, Array *array)
 {
     array->clean();
-    array->set("czxid",stat->czxid);
-    array->set("mzxid",stat->mzxid);
-    array->set("ctime",stat->ctime);
-    array->set("mtime",stat->mtime);
-    array->set("version",stat->version);
+    array->set("czxid", (long) stat->czxid);
+    array->set("mzxid", (long) stat->mzxid);
+    array->set("ctime", (long) stat->ctime);
+    array->set("mtime", (long) stat->mtime);
+    array->set("version", stat->version);
     array->set("cversion",stat->cversion);
     array->set("aversion",stat->aversion);
-    array->set("ephemeralOwner",stat->ephemeralOwner);
+    array->set("ephemeralOwner", (long) stat->ephemeralOwner);
     array->set("dataLength",stat->dataLength);
     array->set("numChildren",stat->numChildren);
-    array->set("pzxid",stat->pzxid);
+    array->set("pzxid", (long) stat->pzxid);
 }
 
 /**

@@ -1,34 +1,41 @@
 #!/usr/bin/env php
 <?php
 
-function d($name, $url)
+$root = dirname(__DIR__);
+
+function getResource($name, $url)
 {
-    $root = dirname(__DIR__);
-    echo "{$root}/.build/{$name}", '_____';
-    if (!file_exists("{$root}/.build/{$name}")) {
+    global $root;
+    echo "{$root}/data/{$name}", '_____';
+    if (!file_exists("{$root}/data/{$name}")) {
         echo 'fetch:', $name, PHP_EOL;
-        file_get_contents($url, "{$root}/.build/{$name}");
+        file_put_contents("{$root}/data/{$name}", file_get_contents($url));
     } else {
         echo 'ign:', $name, PHP_EOL;
     }
 }
 
-
 $data = [
-    'phpx' => 'https://github.com/swoole/phpx/releases/download/v0.1.1/phpx',
-    'swoole.zip' => 'https://github.com/swoole/swoole-src/archive/v4.3.3.zip',
-    'phpx.zip' => 'https://github.com/swoole/phpx/archive/v0.1.1.zip',
+    [
+        "name" => "swoole-src",
+        "version" => "4.3.3",
+        "cmd" => "phpize && ./configure && make && sudo make install",
+        "url" => []
+    ],
+    [
+        "name" => 'phpx',
+        "version" => "0.1.1",
+        "cmd" => "cmake . && sudo make install",
+        "url" => [
+            "phpx.php" => "https://github.com/swoole/phpx/releases/download/v0.1.1/phpx",
+        ],
+    ],
 ];
 
-foreach($data as $name => $url) {
-    d($name, $url);
+foreach ($data as $value) {
+    foreach($value['url'] as $name => $url) {
+        getResource($name, $url);
+    }
+    getResource("{$value['name']}.zip", "https://github.com/swoole/{$value['name']}/archive/v{$value['version']}.zip");
+    echo `unzip {$root}/data/{$value['name']}.zip -d {$root}/data/{$value['name']} && cd {$root}/data/{$value['name']}/{$value['name']}-{$value['version']} && {$value['cmd']}`;
 }
-
-
-$root = dirname(__DIR__);
-
-echo "handle phpx-src", PHP_EOL;
-echo `unzip {$root}/.build/phpx.zip -d {$root}/.build/phpx-src && cd {$root}/.build/phpx-src/phpx-0.1.1 && cmake . && sudo make install`;
-
-echo "handle swoole-src",  PHP_EOL;
-echo `unzip {$root}/.build/swoole.zip -d {$root}/.build/swoole-src && cd {$root}/.build/swoole-src/swoole-src-4.3.3 && phpize && ./configure && make && sudo make install`;
