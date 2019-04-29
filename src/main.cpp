@@ -7,6 +7,11 @@
 #ifndef EXT_ZOOKEEPR_ZK_ZEND_H
 #include "zk_zend.h"
 #endif
+
+#ifndef EXT_ZOOKEEPR_ZOOKEEPERCONFIG_H
+#include "zookeeperConfig.h"
+#endif //EXT_ZOOKEEPR_ZOOKEEPERCONFIG_H
+
 using namespace php;
 using namespace std;
 using namespace zookeeperZend;
@@ -837,6 +842,8 @@ PHPX_EXTENSION()
         c->addMethod(PHPX_ME(zookeeper, getState));
         c->addMethod(PHPX_ME(zookeeper, getClientId));
         ext->registerClass(c);
+        //挂载zookeeperConfig
+        init_zookeeper_config(ext);
     };
 
     ext->require("swoole");
