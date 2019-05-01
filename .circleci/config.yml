@@ -36,7 +36,7 @@ jobs:
 
       - run:
           name: install cmake
-          command: sudo apt install -y cmake libxml2-dev libssl-dev libncurses5-dev libcurl4-openssl-dev libedit-dev
+          command: sudo apt install -y cmake libxml2-dev libssl-dev libncurses5-dev libcurl4-openssl-dev libedit-dev libargon2-dev
 
       - run:
           name: copy zip file if in local
