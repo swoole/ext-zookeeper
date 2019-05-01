@@ -4,7 +4,7 @@
 #
 version: 2
 jobs:
-  build:
+  build: &common-test
     docker:
       # Specify the version you desire here
       - image: circleci/php:7.1-cli
@@ -20,6 +20,10 @@ jobs:
       - image: zookeeper
 
     steps:
+      - run:
+          name: php version
+          command: php -v
+      
       - checkout
 
       - run: 
@@ -65,3 +69,29 @@ jobs:
       - run: 
           name: run tests
           command: ./tests/start.sh
+
+  test-php71:
+    <<: *common-test
+    docker:
+      - image: circleci/php:7.1-cli
+  test-php72:
+    <<: *common-test
+    docker:
+      - image: circleci/php:7.2-cli
+  test-php70:
+    <<: *common-test
+    docker:
+      - image: circleci/php:7.0-cli
+  test-php73:
+    <<: *common-test
+    docker:
+      - image: circleci/php:7.3-cli
+
+workflows:
+  version: 2
+  workflow:
+    jobs:
+      - test-php70
+      - test-php71
+      - test-php72
+      - test-php73
