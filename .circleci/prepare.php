@@ -40,6 +40,11 @@ foreach ($data as $value) {
     foreach($value['url'] as $name => $url) {
         getResource($name, $url);
     }
-    getResource("{$value['name']}.zip", "https://github.com/swoole/{$value['name']}/archive/v{$value['version']}.zip");
-    echo `unzip -q {$root}/data/{$value['name']}.zip -d {$root}/data/{$value['name']} && cd {$root}/data/{$value['name']}/{$value['name']}-{$value['version']} && {$value['cmd']}`;
+    getResource("{$value['name']}.tar.gz", "https://github.com/swoole/{$value['name']}/archive/v{$value['version']}.zip");
+    
+    echo 'tar zxf', PHP_EOL;
+    echo `mkdir -p {$root}/data/{$value['name']} && tar zxf {$root}/data/{$value['name']}.tar.gz -C {$root}/data/{$value['name']}/`;
+    
+    echo 'run command', PHP_EOL;
+    echo `cd {$root}/data/{$value['name']}/{$value['name']}-{$value['version']} && {$value['cmd']}`;
 }
