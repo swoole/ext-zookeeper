@@ -1,6 +1,6 @@
 #!/usr/bin/env php
 <?php
-
+// TODO: 删除这个文件，全部使用 circileci 配置
 $root = dirname(__DIR__);
 
 function getResource($name, $url)
@@ -40,11 +40,11 @@ foreach ($data as $value) {
     foreach($value['url'] as $name => $url) {
         getResource($name, $url);
     }
-    getResource("{$value['name']}.tar.gz", "https://github.com/swoole/{$value['name']}/archive/v{$value['version']}.zip");
+    getResource("{$value['name']}.tar.gz", "https://github.com/swoole/{$value['name']}/archive/v{$value['version']}.tar.gz");
     
     echo 'tar zxf', PHP_EOL;
-    echo `mkdir -p {$root}/data/{$value['name']} && tar zxf {$root}/data/{$value['name']}.tar.gz -C {$root}/data/{$value['name']}/`;
+    echo `tar zxf {$root}/data/{$value['name']}.tar.gz -C {$root}/data/`;
     
     echo 'run command', PHP_EOL;
-    echo `cd {$root}/data/{$value['name']}/{$value['name']}-{$value['version']} && {$value['cmd']}`;
+    echo `cd {$root}/data/{$value['name']}-{$value['version']} && {$value['cmd']}`;
 }
