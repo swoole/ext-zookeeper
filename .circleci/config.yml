@@ -31,6 +31,22 @@ jobs:
       - run:
           name: php version
           command: php -v
+
+      # - run:
+      #     name: prepare environment
+      #     command: |
+      #       echo ' 
+      #             export  PHPX_VERSION="0.1.1"
+      #             export  SWOOLE_VERSION="4.3.3"
+
+      #             export  PHPX_BIN_URL="https://github.com/swoole/phpx/releases/download/v$PHPX_VERSION/phpx"
+      #             export  PHPX_SRC_URL="https://github.com/swoole/phpx/archive/v$PHPX_VERSION.tar.gz"
+      #             export  PHPX_COMPILE_CMD="ls -la && cmake . && make && sudo make install"
+
+      #             export  SWOOLE_SRC_URL="https://github.com/swoole/swoole-src/archive/v$SWOOLE_VERSION.tar.gz"
+      #             export  SWOOLE_COMPILE_CMD="phpize && ./configure && make && sudo make install"
+      #           '  >> $BASH_ENV
+      #       source $BASH_ENV
       
       - checkout
 
@@ -65,11 +81,15 @@ jobs:
       #     command: php -f ./.circleci/prepare.php
 
       - run:
+          name: mkdir -p data
+          command: mkdir -p data
+
+      - run:
           name: download phpx binary
           command: |
             if [[ ! -f ./data/phpx.php ]]
             then
-              eval "wget -O ./data/phpx.php $PHPX_BIN_URL"
+              wget -O ./data/phpx.php $PHPX_BIN_URL 
             fi
 
       - run:
@@ -77,20 +97,20 @@ jobs:
           command: |
             if [[ ! -f ./data/phpx.tar.gz ]]
             then
-              eval "wget -O ./data/phpx.tar.gz $PHPX_SRC_URL"
+              wget -O ./data/phpx.tar.gz $PHPX_SRC_URL 
             fi
 
-            eval "tar zxvf ./data/phpx.tar.gz -C ./data/ && cd ./data/phpx-$PHPX_VERSION/ && $PHPX_COMPILE_CMD"
+            tar zxvf ./data/phpx.tar.gz -C ./data/ && cd ./data/phpx-$PHPX_VERSION/ && eval $PHPX_COMPILE_CMD
 
       - run:
           name: download swoole src, then compile
           command: |
             if [[ ! -f ./data/swoole-src.tar.gz ]]
             then
-              eval "wget -O ./data/swoole-src.tar.gz $SWOOLE_SRC_URL"
+              wget -O ./data/swoole-src.tar.gz $SWOOLE_SRC_URL 
             fi
             
-            eval "tar zxvf ./data/swoole-src.tar.gz -C ./data/ && cd ./data/swoole-src-$SWOOLE_VERSION/ && $SWOOLE_COMPILE_CMD"
+            tar zxvf ./data/swoole-src.tar.gz -C ./data/ && cd ./data/swoole-src-$SWOOLE_VERSION/ && eval $SWOOLE_COMPILE_CMD
 
       - run:
           name: build ext-zookeeper 
