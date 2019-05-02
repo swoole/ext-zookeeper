@@ -42,7 +42,13 @@ jobs:
       
       - run:
           name: install libargon2
-          command: NOT_FOUND=`sudo apt-cache show libargon2-dev  2>&1 | grep 'No packages found'`; if [[ -n $NOT_FOUND ]]; then sudo apt install libargon2-0-dev; else sudo apt install libargon2-dev; fi;
+          command: |
+                  HAS_ARGON2=`sudo apt-cache search libargon2-dev`
+                  if [[ -n $HAS_ARGON2 ]];then
+                    sudo apt install libargon2-dev
+                  else
+                    sudo apt install libargon2-0-dev
+                  fi
 
       - run:
           name: copy zip file if in local
