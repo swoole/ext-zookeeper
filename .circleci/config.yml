@@ -57,8 +57,8 @@ jobs:
                   fi
 
       - run:
-          name: mkdir -p data if in local
-          command: if [[ -n $LOCAL ]]; then mkdir -p ./data ; fi;
+          name: mkdir -p data
+          command: mkdir -p ./data
 
       - run:
           name: copy zip file if in local
