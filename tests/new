@@ -96,19 +96,6 @@ foreach ($replacement as $key => $value) {
 if (file_put_contents($filename, $template)) {
     echo swoole_color("Generate the test file successfully!\n", SWOOLE_COLOR_GREEN) .
         "[" . __DIR__ . "/$filename]";
-    @shell_exec('/usr/bin/env git add ' . __DIR__ . "/$filename");
-    if (\stripos(PHP_OS, 'Darwin') !== false) {
-        //MacOS
-        $pstorm = '/usr/local/bin/pstorm';
-        if (file_exists($pstorm) || (
-                file_exists('/Applications/PhpStorm.app') &&
-                file_put_contents($pstorm, file_get_contents(__DIR__ . '/include/macos/phpstorm.py')) &&
-                chmod($pstorm, 0744)
-            )
-        ) {
-            @shell_exec("/usr/local/bin/phpstorm {$filename}");
-        }
-    }
 } else {
     exit("\nGenerate the test file failed!");
 }
