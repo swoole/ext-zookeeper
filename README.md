@@ -1,6 +1,8 @@
 # ext-zookeeper
 依赖 `Swoole`和`PHP-X`。
 
+[![CircleCI](https://circleci.com/gh/swoole/ext-zookeeper/tree/master.svg?style=svg)](https://circleci.com/gh/swoole/ext-zookeeper/tree/master)
+
 已支持的指令
 ----
 
