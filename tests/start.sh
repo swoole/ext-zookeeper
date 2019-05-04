@@ -17,4 +17,4 @@ if [ -z "${TEST_PHP_EXECUTABLE}" ]; then
     export TEST_PHP_EXECUTABLE=`which php`
 fi
 
-PHPT=1 ${TEST_PHP_EXECUTABLE} -d "memory_limit=1024m" ${__DIR__}/run-tests swoole_*
+NO_INTERACTION=1 PHPT=1 ${TEST_PHP_EXECUTABLE} -d "memory_limit=1024m" ${__DIR__}/run-tests swoole_*
