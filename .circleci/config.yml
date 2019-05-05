@@ -6,17 +6,7 @@ version: 2
 jobs:
   build: &common-test
     docker:
-      # Specify the version you desire here
       - image: circleci/php:7.1-cli
-
-      # Specify service dependencies here if necessary
-      # CircleCI maintains a library of pre-built images
-      # documented at https://circleci.com/docs/2.0/circleci-images/
-      # Using the RAM variation mitigates I/O contention
-      # for database intensive operations.
-      # - image: circleci/mysql:5.7-ram
-      #
-      # - image: redis:2.8.19
       - image: zookeeper
     environment:
       PHPX_VERSION: "0.1.1"
@@ -113,6 +103,10 @@ jobs:
           command: sudo cp .circleci/docker-php-ext-swoole.ini /usr/local/etc/php/conf.d/
 
       - run: 
+          name: waiting for zookeeper
+          command: dockerize -wait tcp://localhost:2181 -timeout 1m
+
+      - run: 
           name: run tests
           command: ./tests/start.sh
 
@@ -120,18 +114,22 @@ jobs:
     <<: *common-test
     docker:
       - image: circleci/php:7.1-cli
+      - image: zookeeper
   test-php72:
     <<: *common-test
     docker:
       - image: circleci/php:7.2-cli
+      - image: zookeeper
   test-php70:
     <<: *common-test
     docker:
       - image: circleci/php:7.0-cli
+      - image: zookeeper
   test-php73:
     <<: *common-test
     docker:
       - image: circleci/php:7.3-cli
+      - image: zookeeper
 
 workflows:
   version: 2
