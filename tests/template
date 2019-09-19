@@ -3,7 +3,6 @@
 --SKIPIF--
 <?php
 require __DIR__ . '/../inc/skipif.inc';
-require __DIR__ . '/../inc/bootstrap.php';
 --FILE--
 <?php
 require __DIR__ . '/../inc/bootstrap.php';
