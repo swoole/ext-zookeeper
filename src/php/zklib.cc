@@ -1,12 +1,8 @@
 //
 // Created by zhanglei on 19-4-23.
 //
-
-
-
-#ifndef EXT_ZOOKEEPR_ZK_ZEND_H
-#include "zk_zend.h"
-#endif
+#include "zklib.h"
+#include "phpx.h"
 
 using namespace php;
 using namespace zookeeperZend;

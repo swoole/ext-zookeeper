@@ -19,6 +19,7 @@ go(function () {
     }
     echo $zk->get(TEST_ZOOKEEPER_PERSISTENT_KEY);
 });
+Swoole\Event::wait();
 ?>
 --EXPECTF--
 swoole

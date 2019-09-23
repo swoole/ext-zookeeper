@@ -4,9 +4,7 @@
 
 #include "phpx.h"
 #include "zookeeper.h"
-#ifndef EXT_ZOOKEEPR_ZK_ZEND_H
-#include "zk_zend.h"
-#endif
+#include "zklib.h"
 
 using namespace php;
 using namespace std;
@@ -33,7 +31,7 @@ struct QueryResult
     Variant retval;
 };
 
-void dumpStat(const struct Stat *stat)
+static void dump_stat(const struct Stat *stat)
 {
     char tctimes[40];
     char tmtimes[40];
@@ -83,11 +81,15 @@ static void zk_dispatch(Object &_this, zhandle_t *zh, QueryResult &result)
     }
 }
 
-void watch_func(zhandle_t *zh, int type, int state, const char *path, void *watcherCtx)
+static void watch_func(zhandle_t *zh, int type, int state, const char *path, void *watcherCtx)
 {
-    QueryResult *result = (QueryResult *) watcherCtx;
-    result->retval = true;
-    result->running = false;
+    Object *_this = (Object *) watcherCtx;
+    auto fn = _this->get("watcher");
+    Args args;
+    Variant key(path);
+    args.append(_this->ptr());
+    args.append(key);
+    call(fn, args);
 }
 
 static void my_string_completion(int rc, const char *name, const void *data)
@@ -132,7 +134,7 @@ void my_data_completion(int rc, const char *value, int value_len, const struct S
         fprintf(stderr, " value_len = %d\n", value_len);
     }
     fprintf(stderr, "\nStat:\n");
-    dumpStat(stat);
+    dump_stat(stat);
     free((void*) data);
 }
 
@@ -179,7 +181,7 @@ void my_strings_completion(int rc, const struct String_vector *strings, const vo
 void my_strings_stat_completion(int rc, const struct String_vector *strings, const struct Stat *stat, const void *data)
 {
     my_strings_completion(rc, strings, data);
-    dumpStat(stat);
+    dump_stat(stat);
 }
 
 void my_void_completion(int rc, const void *data)
@@ -202,7 +204,7 @@ void my_stat_completion(int rc, const struct Stat *stat, const void *data)
     if (debug)
     {
         printf("my_stat_completion rc=%d\n", rc);
-        dumpStat(stat);
+        dump_stat(stat);
     }
 
     QueryResult *result = (QueryResult *) data;
@@ -274,16 +276,16 @@ void my_set_acl_completion(int rc, const void *data)
  * @param aclv
  * @param array
  */
-static void php_aclv_to_array(const struct ACL_vector *aclv, Array *array)
+static void php_aclv_to_array(const struct ACL_vector *aclv, Array &array)
 {
-    Array *temp = new Array();
     int i;
-    for (i = 0; i < aclv->count; i++) {
-        temp->clean();
-        temp->set("perms",aclv->data[i].perms);
-        temp->set("scheme",aclv->data[i].id.scheme);
-        temp->set("id",aclv->data[i].id.id);
-        array->append(*temp);
+    for (i = 0; i < aclv->count; i++)
+    {
+        Array temp;
+        temp.set("perms", aclv->data[i].perms);
+        temp.set("scheme", aclv->data[i].id.scheme);
+        temp.set("id", aclv->data[i].id.id);
+        array.append(temp);
     }
 }
 
@@ -292,20 +294,20 @@ static void php_aclv_to_array(const struct ACL_vector *aclv, Array *array)
  * @param stat
  * @param array
  */
-static void php_stat_to_array(const struct Stat *stat, Array *array)
+static void php_stat_to_array(const struct Stat *stat, Array &array)
 {
-    array->clean();
-    array->set("czxid", (long) stat->czxid);
-    array->set("mzxid", (long) stat->mzxid);
-    array->set("ctime", (long) stat->ctime);
-    array->set("mtime", (long) stat->mtime);
-    array->set("version", stat->version);
-    array->set("cversion",stat->cversion);
-    array->set("aversion",stat->aversion);
-    array->set("ephemeralOwner", (long) stat->ephemeralOwner);
-    array->set("dataLength",stat->dataLength);
-    array->set("numChildren",stat->numChildren);
-    array->set("pzxid", (long) stat->pzxid);
+    array.clean();
+    array.set("czxid", (long) stat->czxid);
+    array.set("mzxid", (long) stat->mzxid);
+    array.set("ctime", (long) stat->ctime);
+    array.set("mtime", (long) stat->mtime);
+    array.set("version", stat->version);
+    array.set("cversion", stat->cversion);
+    array.set("aversion", stat->aversion);
+    array.set("ephemeralOwner", (long) stat->ephemeralOwner);
+    array.set("dataLength", stat->dataLength);
+    array.set("numChildren", stat->numChildren);
+    array.set("pzxid", (long) stat->pzxid);
 }
 
 /**
@@ -315,22 +317,23 @@ static void php_stat_to_array(const struct Stat *stat, Array *array)
  * @param stat
  * @param data
  */
-void my_acl_completion(int rc, struct ACL_vector *acl,struct Stat *stat, const void *data){
+void my_acl_completion(int rc, struct ACL_vector *acl, struct Stat *stat, const void *data)
+{
     QueryResult *result = (QueryResult *) data;
     result->error = rc;
     if (rc == ZOK)
     {
         Array _array(result->retval);
-        Array *aclArr = new Array(),*statArr = new Array();
+        Array aclArr, statArr;
 
-        php_stat_to_array(stat,statArr);
-        php_aclv_to_array(acl,aclArr);
+        php_stat_to_array(stat, statArr);
+        php_aclv_to_array(acl, aclArr);
 
-        _array.append(*statArr);
-        _array.append(*aclArr);
+        _array.append(statArr);
+        _array.append(aclArr);
 
         //返回两个数组，stat信息数组和，acl信息数组
-        result->retval=_array;
+        result->retval = _array;
     }
     else
     {
@@ -368,10 +371,7 @@ PHPX_METHOD(zookeeper, get)
 
 PHPX_METHOD(zookeeper, addAuth)
 {
-    struct timeval tv;
-    int events;
     zhandle_t *zh = _this.oGet<zhandle_t>("handle", "zhandle_t");
-    int fd, rc;
     QueryResult result;
 
     if (args.count() > 2)
@@ -379,83 +379,34 @@ PHPX_METHOD(zookeeper, addAuth)
         return ;
     }
 
-    rc = zookeeper_interest(zh, &fd, &events, &tv);
+    int rc = zoo_add_auth(zh, args[0].toCString(), args[1].toCString(), args[1].length(), my_void_completion, &result);
     if (rc)
     {
-        _error: _this.set("errCode", rc);
         retval = false;
-        return;
+        _this.set("errCode", rc);
     }
-    rc = zoo_add_auth(zh, args[0].toCString(), args[1].toCString(),args[1].length(), my_void_completion, &result);
-    if (rc)
+    else
     {
-        goto _error;
-    }
-
-    while (result.running)
-    {
-        rc = zookeeper_interest(zh, &fd, &events, &tv);
-        if (rc)
-        {
-            goto _error;
-        }
-        rc = zookeeper_process(zh, events);
-        if (rc)
-        {
-            goto _error;
-        }
-    }
-
-    retval = result.retval;
-    if (result.error != 0)
-    {
-        _this.set("errCode", result.error);
+        zk_dispatch(_this, zh, result);
+        retval = result.retval;
     }
 }
 
 PHPX_METHOD(zookeeper, getAcl)
 {
-    struct timeval tv;
     zhandle_t *zh = _this.oGet<zhandle_t>("handle", "zhandle_t");
-    //初始换QueryResult结构体，
     QueryResult result;
-    result.running = true;//并且设置running为true
-    int events = ZOOKEEPER_READ;
-    int fd, rc;
-    //rc：zookeeper.h中ZOO_ERRORS
-    rc = zookeeper_interest(zh, &fd, &events, &tv);
+
+    int rc = zoo_aget_acl(zh, args[0].toCString(), my_acl_completion, &result);
     if (rc)
     {
-        _error: _this.set("errCode", rc);
         retval = false;
-        return;
+        _this.set("errCode", rc);
     }
-    rc = zoo_aget_acl(zh, args[0].toCString(),my_acl_completion,&result);
-
-    if (rc)
+    else
     {
-        goto _error;
-    }
-
-    while (result.running)
-    {
-        rc = zookeeper_interest(zh, &fd, &events, &tv);
-        if (rc)
-        {
-            goto _error;
-        }
-        rc = zookeeper_process(zh, events);
-        if (rc)
-        {
-            goto _error;
-        }
-    }
-
-    //执行my_silent_data_completion后，在my_acl_completion方法中会将结果value设置在result.retval中
-    retval = result.retval;
-    if (result.error != 0)
-    {
-        _this.set("errCode", result.error);
+        zk_dispatch(_this, zh, result);
+        retval = result.retval;
     }
 }
 
@@ -499,10 +450,7 @@ PHPX_METHOD(zookeeper, create)
 
 PHPX_METHOD(zookeeper, set)
 {
-    struct timeval tv;
-    int events;
     zhandle_t *zh = _this.oGet<zhandle_t>("handle", "zhandle_t");
-    int fd, rc;
     QueryResult result;
     long version = -1;
 
@@ -511,43 +459,24 @@ PHPX_METHOD(zookeeper, set)
         version = args[2].toInt();
     }
 
-    rc = zookeeper_interest(zh, &fd, &events, &tv);
-    if (rc)
-    {
-        _error: _this.set("errCode", rc);
-        retval = false;
-        return;
-    }
-    rc = zoo_aset(zh, args[0].toCString(), args[1].toCString(), args[1].length(), (int) version,
+    int rc = zoo_aset(zh, args[0].toCString(), args[1].toCString(), args[1].length(), (int) version,
             my_silent_stat_completion, &result);
 
-    while (result.running)
+    if (rc)
     {
-        rc = zookeeper_interest(zh, &fd, &events, &tv);
-        if (rc)
-        {
-            goto _error;
-        }
-        rc = zookeeper_process(zh, events);
-        if (rc)
-        {
-            goto _error;
-        }
+        retval = false;
+        _this.set("errCode", rc);
     }
-
-    retval = result.retval;
-    if (result.error != 0)
+    else
     {
-        _this.set("errCode", result.error);
+        zk_dispatch(_this, zh, result);
+        retval = result.retval;
     }
 }
 
 PHPX_METHOD(zookeeper, delete)
 {
-    struct timeval tv;
-    int events;
     zhandle_t *zh = _this.oGet<zhandle_t>("handle", "zhandle_t");
-    int fd, rc;
     QueryResult result;
     long version = -1;
 
@@ -556,33 +485,16 @@ PHPX_METHOD(zookeeper, delete)
         version = args[2].toInt();
     }
 
-    rc = zookeeper_interest(zh, &fd, &events, &tv);
+    int rc = zoo_adelete(zh, args[0].toCString(), (int) version, my_void_completion, &result);
     if (rc)
     {
-        _error: _this.set("errCode", rc);
         retval = false;
-        return;
+        _this.set("errCode", rc);
     }
-    rc = zoo_adelete(zh, args[0].toCString(), (int) version, my_void_completion, &result);
-
-    while (result.running)
+    else
     {
-        rc = zookeeper_interest(zh, &fd, &events, &tv);
-        if (rc)
-        {
-            goto _error;
-        }
-        rc = zookeeper_process(zh, events);
-        if (rc)
-        {
-            goto _error;
-        }
-    }
-
-    retval = result.retval;
-    if (result.error != 0)
-    {
-        _this.set("errCode", result.error);
+        zk_dispatch(_this, zh, result);
+        retval = result.retval;
     }
 }
 
@@ -667,6 +579,22 @@ PHPX_METHOD(zookeeper, setLogStream)
     zoo_set_log_stream(fp);
 }
 
+PHPX_METHOD(zookeeper, setWatcher)
+{
+    if (args.count() == 0)
+    {
+        _return_null: return;
+    }
+    if (!args[0].isCallable())
+    {
+        error(E_WARNING, "expects parameter 1 to be callable");
+        goto _return_null;
+    }
+    zhandle_t *zh = _this.oGet<zhandle_t>("handle", "zhandle_t");
+    _this.set("watcher", args[0]);
+    zoo_set_watcher(zh, watch_func);
+}
+
 void zookeeper_dtor(zend_resource *res)
 {
     zhandle_t *zh = static_cast<zhandle_t *>(res->ptr);
@@ -678,9 +606,6 @@ PHPX_METHOD(zookeeper, setAcl)
     struct ACL_vector *zookeeper_acl;
     QueryResult result;
     long version = -1;
-    int events;
-    int fd, rc;
-    struct timeval tv;
     //至少有一个参数
     if (args.count() < 1)
     {
@@ -690,7 +615,7 @@ PHPX_METHOD(zookeeper, setAcl)
     }
 
     //如果第一个参数不是一个字符串
-    if(!(args[0].isString()))
+    if (!(args[0].isString()))
     {
         error(E_WARNING, "first param must be string");
         goto fail;
@@ -725,39 +650,18 @@ PHPX_METHOD(zookeeper, setAcl)
         goto fail;
     }
 
-    int a = 1;
-
-    //初始化结构体
     zhandle_t *zh = _this.oGet<zhandle_t>("handle", "zhandle_t");
-    rc = zookeeper_interest(zh, &fd, &events, &tv);
+    int rc = zoo_aset_acl(zh,args[0].toCString(),version,zookeeper_acl,my_set_acl_completion,&result);
+    zKLib::free_acl_struct(zookeeper_acl);
     if (rc)
     {
-        _error: _this.set("errCode", rc);
         retval = false;
-        return;
+        _this.set("errCode", rc);
     }
-    rc = zoo_aset_acl(zh,args[0].toCString(),version,zookeeper_acl,my_set_acl_completion,&result);
-
-    zKLib::free_acl_struct(zookeeper_acl);
-
-    while(result.running)
+    else
     {
-        rc = zookeeper_interest(zh, &fd, &events, &tv);
-        if (rc)
-        {
-            goto _error;
-        }
-        rc = zookeeper_process(zh, events);
-        if (rc)
-        {
-            goto _error;
-        }
-    }
-
-    retval = result.retval;
-    if (result.error != 0)
-    {
-        _this.set("errCode", result.error);
+        zk_dispatch(_this, zh, result);
+        retval = result.retval;
     }
 }
 
@@ -765,9 +669,8 @@ PHPX_METHOD(zookeeper, watch)
 {
     zhandle_t *zh = _this.oGet<zhandle_t>("handle", "zhandle_t");
     QueryResult result;
-    result.running = true;
 
-    int rc = zoo_awget(zh, args[0].toCString(), watch_func, &result, my_silent_data_completion, &result);
+    int rc = zoo_awget(zh, args[0].toCString(), watch_func, &_this, my_silent_data_completion, &result);
     if (rc)
     {
         retval = false;
@@ -775,6 +678,52 @@ PHPX_METHOD(zookeeper, watch)
     else
     {
         zk_dispatch(_this, zh, result);
+    }
+}
+
+PHPX_METHOD(zookeeper, watchChildren)
+{
+    zhandle_t *zh = _this.oGet<zhandle_t>("handle", "zhandle_t");
+    QueryResult result;
+
+    int rc = zoo_awget_children(zh, args[0].toCString(), watch_func, &_this, my_strings_completion, &result);
+    if (rc)
+    {
+        retval = false;
+    }
+    else
+    {
+        zk_dispatch(_this, zh, result);
+    }
+}
+
+PHPX_METHOD(zookeeper, waitEvent)
+{
+    zhandle_t *zh = _this.oGet<zhandle_t>("handle", "zhandle_t");
+    QueryResult result;
+
+    int fd, rc, events = ZOOKEEPER_READ;
+    struct timeval tv;
+
+    while (true)
+    {
+        int rc = zookeeper_interest(zh, &fd, &events, &tv);
+        if (rc)
+        {
+            _error: _this.set("errCode", rc);
+            result.retval = false;
+            return;
+        }
+        if (swoole_coroutine_socket_wait_event(fd, 512, 1) < 0)
+        {
+            result.retval = false;
+            return;
+        }
+        rc = zookeeper_process(zh, events);
+        if (rc)
+        {
+            goto _error;
+        }
     }
 }
 
@@ -795,6 +744,7 @@ PHPX_EXTENSION()
         Class *c = new Class("swoole\\zookeeper");
         c->addProperty("errCode", 0);
         c->addProperty("logStream", Variant(), PRIVATE);
+        c->addProperty("watcher", Variant(), PRIVATE);
 
         c->addConstant("PERM_READ", ZOO_PERM_READ);
         c->addConstant("PERM_WRITE", ZOO_PERM_WRITE);
@@ -814,11 +764,14 @@ PHPX_EXTENSION()
         c->addMethod(PHPX_ME(zookeeper, getAcl));
         c->addMethod(PHPX_ME(zookeeper, getChildren));
         c->addMethod(PHPX_ME(zookeeper, watch));
+        c->addMethod(PHPX_ME(zookeeper, watchChildren));
+        c->addMethod(PHPX_ME(zookeeper, waitEvent));
         c->addMethod(PHPX_ME(zookeeper, setDebugLevel), STATIC);
         c->addMethod(PHPX_ME(zookeeper, getState));
         c->addMethod(PHPX_ME(zookeeper, getClientId));
         c->addMethod(PHPX_ME(zookeeper, setDeterministicConnOrder), PUBLIC, new ArgInfo(1));
-        c->addMethod(PHPX_ME(zookeeper, setLogStream), PUBLIC);
+        c->addMethod(PHPX_ME(zookeeper, setLogStream));
+        c->addMethod(PHPX_ME(zookeeper, setWatcher));
 
         ext->registerClass(c);
     };

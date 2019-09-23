@@ -17,6 +17,7 @@ go(function () {
     var_dump($zk instanceof zookeeper);
     var_dump($zk->create(TEST_ZOOKEEPER_KEY, 1, ZOO_EPHEMERAL));
 });
+Swoole\Event::wait();
 ?>
 --EXPECTF--
 int(999)
