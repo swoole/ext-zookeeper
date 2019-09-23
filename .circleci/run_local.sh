@@ -4,13 +4,13 @@ set -x -e
 
 CURRENT=`pwd`
 
-export  PHPX_VERSION="0.1.1"
-export  SWOOLE_VERSION="4.3.3"
+export  PHPX_VERSION="v0.1.1"
+export  SWOOLE_VERSION="master"
 
-export  PHPX_BIN_URL="https://github.com/swoole/phpx/releases/download/v$PHPX_VERSION/phpx"
-export  PHPX_SRC_URL="https://github.com/swoole/phpx/archive/v$PHPX_VERSION.tar.gz"
+export  PHPX_BIN_URL="https://github.com/swoole/phpx/releases/download/$PHPX_VERSION/phpx"
+export  PHPX_SRC_URL="https://github.com/swoole/phpx/archive/$PHPX_VERSION.tar.gz"
 
-export  SWOOLE_SRC_URL="https://github.com/swoole/swoole-src/archive/v$SWOOLE_VERSION.tar.gz"
+export  SWOOLE_SRC_URL="https://github.com/swoole/swoole-src/archive/$SWOOLE_VERSION.tar.gz"
 
 [[ -d $CURRENT/data ]] || mkdir -p ./data
 
