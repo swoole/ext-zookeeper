@@ -25,9 +25,8 @@ go(function () {
             ]
         ]
     ]);
-
     var_dump($a);
-    var_dump($zk->errCode);
+            var_dump($zk->errCode);
 
     //var_dump($zk->getAcl("/test34"));
 });
