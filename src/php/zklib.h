@@ -1,13 +1,12 @@
 //
 // Created by zhanglei on 19-4-23.
 //
-#include <stdbool.h>
-#include <phpx.h>
-#include "zookeeper.h"
-#ifndef EXT_ZOOKEEPR_ZK_ZEND_H
-#define EXT_ZOOKEEPR_ZK_ZEND_H
 
-#endif //EXT_ZOOKEEPR_ZK_ZEND_H
+#pragma once
+
+#include <stdbool.h>
+#include "phpx.h"
+#include "zookeeper.h"
 
 namespace zookeeperZend {
 

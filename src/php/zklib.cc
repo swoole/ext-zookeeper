@@ -1,12 +1,8 @@
 //
 // Created by zhanglei on 19-4-23.
 //
-
-
-
-#ifndef EXT_ZOOKEEPR_ZK_ZEND_H
-#include "zk_zend.h"
-#endif
+#include "zklib.h"
+#include "phpx.h"
 
 using namespace php;
 using namespace zookeeperZend;
@@ -21,17 +17,17 @@ void zKLib::convert_stat_to_array(Array* destArray,struct Stat *stat)
 {
     Array statArray;
     destArray->set("stat",statArray);
-    statArray.set("czxid",stat->czxid);
-    statArray.set("mzxid",stat->mzxid);
-    statArray.set("ctime",stat->ctime);
-    statArray.set("mtime",stat->mtime);
-    statArray.set("version",stat->version);
+    statArray.set("czxid", (long) stat->czxid);
+    statArray.set("mzxid", (long) stat->mzxid);
+    statArray.set("ctime", (long) stat->ctime);
+    statArray.set("mtime", (long) stat->mtime);
+    statArray.set("version", stat->version);
     statArray.set("cversion",stat->cversion);
     statArray.set("aversion",stat->aversion);
-    statArray.set("ephemeralOwner",stat->ephemeralOwner);
+    statArray.set("ephemeralOwner", (long) stat->ephemeralOwner);
     statArray.set("dataLength",stat->dataLength);
     statArray.set("numChildren",stat->numChildren);
-    statArray.set("pzxid",stat->pzxid);
+    statArray.set("pzxid", (long) stat->pzxid);
 }
 
 //将acl赋值到数组

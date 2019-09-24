@@ -1,0 +1,141 @@
+# PHP CircleCI 2.0 configuration file
+#
+# Check https://circleci.com/docs/2.0/language-php/ for more details
+#
+version: 2
+jobs:
+  build: &common-test
+    docker:
+      - image: circleci/php:7.1-cli
+      - image: zookeeper
+    environment:
+      PHPX_VERSION: "0.1.1"
+      SWOOLE_VERSION: "4.3.3"
+      PHPX_BIN_URL: "https://github.com/swoole/phpx/releases/download/v$PHPX_VERSION/phpx"
+      PHPX_SRC_URL: "https://github.com/swoole/phpx/archive/v$PHPX_VERSION.tar.gz"
+      PHPX_COMPILE_CMD: "cmake . && sudo make install"
+      SWOOLE_SRC_URL: "https://github.com/swoole/swoole-src/archive/v$SWOOLE_VERSION.tar.gz"
+      SWOOLE_COMPILE_CMD: "phpize && ./configure && sudo make install"
+    
+    steps:
+      - run:
+          name: php version
+          command: php -v
+      
+      - checkout
+
+      - run: 
+          name: replace apt mirror if in local
+          command: if [[ -n $LOCAL ]]; then sudo sed -i 's/deb.debian.org/mirrors.ustc.edu.cn/g' /etc/apt/sources.list && sudo sed -i 's|security.debian.org/debian-security|mirrors.ustc.edu.cn/debian-security|g' /etc/apt/sources.list; fi;
+      
+      - run:
+          name: apt update
+          command: sudo apt update
+
+      - run:
+          name: install cmake && other dependencies
+          command: sudo apt install -y cmake libxml2-dev libssl-dev libncurses5-dev libcurl4-openssl-dev libedit-dev
+      
+      - run:
+          name: install libargon2
+          command: |
+                  HAS_ARGON2=`sudo apt-cache search libargon2-dev`
+                  if [[ -n $HAS_ARGON2 ]];then
+                    sudo apt install libargon2-dev
+                  else
+                    sudo apt install libargon2-0-dev
+                  fi
+
+      - run:
+          name: mkdir -p data
+          command: mkdir -p ./data
+
+      - run:
+          name: copy zip file if in local
+          command: if [[ -n $LOCAL ]]; then cp -r /tmp/data/* /home/circleci/project/data/ ; fi;
+
+      - run:
+          name: download phpx binary
+          command: |
+            if [[ ! -f ./data/phpx.php ]]
+            then
+              eval "wget -O ./data/phpx.php $PHPX_BIN_URL"
+            fi
+
+      - run:
+          name: download phpx src, then compile
+          command: |
+            if [[ ! -f ./data/phpx.tar.gz ]]
+            then
+              eval "wget -O ./data/phpx.tar.gz $PHPX_SRC_URL"
+            fi
+
+            eval "tar zxvf ./data/phpx.tar.gz -C ./data/ && cd ./data/phpx-$PHPX_VERSION/ && $PHPX_COMPILE_CMD"
+
+      - run:
+          name: download swoole src, then compile
+          command: |
+            if [[ ! -f ./data/swoole-src.tar.gz ]]
+            then
+              eval "wget -O ./data/swoole-src.tar.gz $SWOOLE_SRC_URL"
+            fi
+            
+            eval "tar zxvf ./data/swoole-src.tar.gz -C ./data/ && cd ./data/swoole-src-$SWOOLE_VERSION/ && $SWOOLE_COMPILE_CMD"
+
+      - run:
+          name: build ext-zookeeper 
+          command: php ./data/phpx.php build && sudo php ./data/phpx.php install
+      
+      - run: 
+          name: run ldconfig
+          command: sudo ldconfig
+
+      - run: 
+          name: disable xdebug
+          command: sudo rm -rf /usr/local/etc/php/conf.d/docker-php-ext-xdebug.ini
+
+      - run:
+          name: enable zk
+          command: sudo cp .circleci/docker-php-ext-zookeeper.ini /usr/local/etc/php/conf.d/
+
+      - run:
+          name: enable swoole
+          command: sudo cp .circleci/docker-php-ext-swoole.ini /usr/local/etc/php/conf.d/
+
+      - run: 
+          name: waiting for zookeeper
+          command: dockerize -wait tcp://localhost:2181 -timeout 1m
+
+      - run: 
+          name: run tests
+          command: ./tests/start.sh
+
+  test-php71:
+    <<: *common-test
+    docker:
+      - image: circleci/php:7.1-cli
+      - image: zookeeper
+  test-php72:
+    <<: *common-test
+    docker:
+      - image: circleci/php:7.2-cli
+      - image: zookeeper
+  test-php70:
+    <<: *common-test
+    docker:
+      - image: circleci/php:7.0-cli
+      - image: zookeeper
+  test-php73:
+    <<: *common-test
+    docker:
+      - image: circleci/php:7.3-cli
+      - image: zookeeper
+
+workflows:
+  version: 2
+  workflow:
+    jobs:
+      - test-php70
+      - test-php71
+      - test-php72
+      - test-php73
