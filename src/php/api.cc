@@ -5,6 +5,7 @@
 #include "phpx.h"
 #include "zookeeper.h"
 #include "zklib.h"
+#include "../zk/zk_adaptor.h"
 
 using namespace php;
 using namespace std;
@@ -50,9 +51,9 @@ static void dump_stat(const struct Stat *stat)
     ctime_r(&tctime, tctimes);
 
     fprintf(stderr, "\tctime = %s\tczxid=%lld\n"
-            "\tmtime=%s\tmzxid=%lld\n"
-            "\tversion=%x\taversion=%x\n"
-            "\tephemeralOwner = %lld\n", tctimes, stat->czxid, tmtimes, stat->mzxid, stat->version, stat->aversion,
+                    "\tmtime=%s\tmzxid=%lld\n"
+                    "\tversion=%x\taversion=%x\n"
+                    "\tephemeralOwner = %lld\n", tctimes, stat->czxid, tmtimes, stat->mzxid, stat->version, stat->aversion,
             stat->ephemeralOwner);
 }
 
@@ -344,387 +345,475 @@ void my_acl_completion(int rc, struct ACL_vector *acl, struct Stat *stat, const 
 
 PHPX_METHOD(zookeeper, __construct)
 {
-    auto host = args[0];
-    double recv_timeout = args[1].toInt();
-    int recv_timeout_ms = recv_timeout * 1000;
-    zoo_deterministic_conn_order(1);
-    zhandle_t *zh = zookeeper_init(host.toCString(), nullptr, recv_timeout_ms, 0, NULL, 0);
-    _this.oSet<zhandle_t>("handle", "zhandle_t", zh);
+auto host = args[0];
+double recv_timeout = args[1].toInt();
+int recv_timeout_ms = recv_timeout * 1000;
+zoo_deterministic_conn_order(1);
+zhandle_t *zh = zookeeper_init(host.toCString(), nullptr, recv_timeout_ms, 0, NULL, 0);
+if(!zh) {
+error(E_WARNING,"Connect zookeeper failed");
+_this.oSet<zhandle_t>("handle", "zhandle_t", NULL);
+}else{
+_this.oSet<zhandle_t>("handle", "zhandle_t", zh);
+}
 }
 
 PHPX_METHOD(zookeeper, get)
 {
-    zhandle_t *zh = _this.oGet<zhandle_t>("handle", "zhandle_t");
-    QueryResult result;
-    int rc = zoo_aget(zh, args[0].toCString(), 0, my_silent_data_completion, &result);
-    if (rc)
-    {
-        retval = false;
-        _this.set("errCode", rc);
-    }
-    else
-    {
-        zk_dispatch(_this, zh, result);
-        retval = result.retval;
-    }
+zhandle_t *zh = _this.oGet<zhandle_t>("handle", "zhandle_t");
+if(zh == nullptr)
+{
+error(E_WARNING,"Connection must be inited");
+return;
+}
+QueryResult result;
+int rc = zoo_aget(zh, args[0].toCString(), 0, my_silent_data_completion, &result);
+if (rc)
+{
+retval = false;
+_this.set("errCode", rc);
+}
+else
+{
+zk_dispatch(_this, zh, result);
+retval = result.retval;
+}
 }
 
 PHPX_METHOD(zookeeper, addAuth)
 {
-    zhandle_t *zh = _this.oGet<zhandle_t>("handle", "zhandle_t");
-    QueryResult result;
+zhandle_t *zh = _this.oGet<zhandle_t>("handle", "zhandle_t");
+if(zh == nullptr)
+{
+error(E_WARNING,"Connection must be inited");
+return;
+}
+QueryResult result;
 
-    if (args.count() > 2)
-    {
-        return ;
-    }
+if (args.count() > 2)
+{
+return ;
+}
 
-    int rc = zoo_add_auth(zh, args[0].toCString(), args[1].toCString(), args[1].length(), my_void_completion, &result);
-    if (rc)
-    {
-        retval = false;
-        _this.set("errCode", rc);
-    }
-    else
-    {
-        zk_dispatch(_this, zh, result);
-        retval = result.retval;
-    }
+int rc = zoo_add_auth(zh, args[0].toCString(), args[1].toCString(), args[1].length(), my_void_completion, &result);
+if (rc)
+{
+retval = false;
+_this.set("errCode", rc);
+}
+else
+{
+zk_dispatch(_this, zh, result);
+retval = result.retval;
+}
 }
 
 PHPX_METHOD(zookeeper, getAcl)
 {
-    zhandle_t *zh = _this.oGet<zhandle_t>("handle", "zhandle_t");
-    QueryResult result;
+zhandle_t *zh = _this.oGet<zhandle_t>("handle", "zhandle_t");
+if(zh == nullptr)
+{
+error(E_WARNING,"Connection must be inited");
+return;
+}
+QueryResult result;
 
-    int rc = zoo_aget_acl(zh, args[0].toCString(), my_acl_completion, &result);
-    if (rc)
-    {
-        retval = false;
-        _this.set("errCode", rc);
-    }
-    else
-    {
-        zk_dispatch(_this, zh, result);
-        retval = result.retval;
-    }
+int rc = zoo_aget_acl(zh, args[0].toCString(), my_acl_completion, &result);
+if (rc)
+{
+retval = false;
+_this.set("errCode", rc);
+}
+else
+{
+zk_dispatch(_this, zh, result);
+retval = result.retval;
+}
 }
 
 PHPX_METHOD(zookeeper, exists)
 {
-    zhandle_t *zh = _this.oGet<zhandle_t>("handle", "zhandle_t");
-    QueryResult result;
+zhandle_t *zh = _this.oGet<zhandle_t>("handle", "zhandle_t");
+if(zh == nullptr)
+{
+error(E_WARNING,"Connection must be inited");
+return;
+}
+QueryResult result;
 
-    int rc = zoo_aexists(zh, args[0].toCString(), 0, my_stat_completion, &result);
-    if (rc)
-    {
-        retval = false;
-        _this.set("errCode", rc);
-    }
-    else
-    {
-        zk_dispatch(_this, zh, result);
-        retval = result.retval;
-    }
+int rc = zoo_aexists(zh, args[0].toCString(), 0, my_stat_completion, &result);
+if (rc)
+{
+retval = false;
+_this.set("errCode", rc);
+}
+else
+{
+zk_dispatch(_this, zh, result);
+retval = result.retval;
+}
 }
 
 PHPX_METHOD(zookeeper, create)
 {
-    zhandle_t *zh = _this.oGet<zhandle_t>("handle", "zhandle_t");
-    QueryResult result;
+zhandle_t *zh = _this.oGet<zhandle_t>("handle", "zhandle_t");
+QueryResult result;
 
-    long flags = args.count() >= 3 ? args[2].toInt() : 0;
-    int rc = zoo_acreate(zh, args[0].toCString(), args[1].toCString(), args[1].length(), &ZOO_OPEN_ACL_UNSAFE, flags,
-            my_string_completion_free_data, &result);
-    if (rc)
-    {
-        retval = false;
-        _this.set("errCode", rc);
-    }
-    else
-    {
-        zk_dispatch(_this, zh, result);
-        retval = result.retval;
-    }
+if(zh == nullptr)
+{
+error(E_WARNING,"Connection must be inited");
+return;
+}
+
+long flags = args.count() >= 3 ? args[2].toInt() : 0;
+int rc = zoo_acreate(zh, args[0].toCString(), args[1].toCString(), args[1].length(), &ZOO_OPEN_ACL_UNSAFE, flags,
+                     my_string_completion_free_data, &result);
+if (rc)
+{
+retval = false;
+_this.set("errCode", rc);
+}
+else
+{
+zk_dispatch(_this, zh, result);
+retval = result.retval;
+}
 }
 
 PHPX_METHOD(zookeeper, set)
 {
-    zhandle_t *zh = _this.oGet<zhandle_t>("handle", "zhandle_t");
-    QueryResult result;
-    long version = -1;
+zhandle_t *zh = _this.oGet<zhandle_t>("handle", "zhandle_t");
+QueryResult result;
+long version = -1;
 
-    if (args.count() > 2)
-    {
-        version = args[2].toInt();
-    }
+if(zh == nullptr)
+{
+error(E_WARNING,"Connection must be inited");
+return;
+}
 
-    int rc = zoo_aset(zh, args[0].toCString(), args[1].toCString(), args[1].length(), (int) version,
-            my_silent_stat_completion, &result);
+if (args.count() > 2)
+{
+version = args[2].toInt();
+}
 
-    if (rc)
-    {
-        retval = false;
-        _this.set("errCode", rc);
-    }
-    else
-    {
-        zk_dispatch(_this, zh, result);
-        retval = result.retval;
-    }
+int rc = zoo_aset(zh, args[0].toCString(), args[1].toCString(), args[1].length(), (int) version,
+                  my_silent_stat_completion, &result);
+
+if (rc)
+{
+retval = false;
+_this.set("errCode", rc);
+}
+else
+{
+zk_dispatch(_this, zh, result);
+retval = result.retval;
+}
 }
 
 PHPX_METHOD(zookeeper, delete)
 {
-    zhandle_t *zh = _this.oGet<zhandle_t>("handle", "zhandle_t");
-    QueryResult result;
-    long version = -1;
+zhandle_t *zh = _this.oGet<zhandle_t>("handle", "zhandle_t");
+QueryResult result;
+long version = -1;
 
-    if (args.count() > 1)
-    {
-        version = args[2].toInt();
-    }
+if(zh == nullptr)
+{
+error(E_WARNING,"Connection must be inited");
+return;
+}
 
-    int rc = zoo_adelete(zh, args[0].toCString(), (int) version, my_void_completion, &result);
-    if (rc)
-    {
-        retval = false;
-        _this.set("errCode", rc);
-    }
-    else
-    {
-        zk_dispatch(_this, zh, result);
-        retval = result.retval;
-    }
+if (args.count() > 1)
+{
+version = args[2].toInt();
+}
+
+int rc = zoo_adelete(zh, args[0].toCString(), (int) version, my_void_completion, &result);
+if (rc)
+{
+retval = false;
+_this.set("errCode", rc);
+}
+else
+{
+zk_dispatch(_this, zh, result);
+retval = result.retval;
+}
 }
 
 PHPX_METHOD(zookeeper, getChildren)
 {
-    zhandle_t *zh = _this.oGet<zhandle_t>("handle", "zhandle_t");
-    QueryResult result;
+zhandle_t *zh = _this.oGet<zhandle_t>("handle", "zhandle_t");
+QueryResult result;
 
-    int rc = zoo_aget_children(zh, args[0].toCString(), 0, my_strings_completion, &result);
-    if (rc)
-    {
-        retval = false;
-        _this.set("errCode", rc);
-    }
-    else
-    {
-        zk_dispatch(_this, zh, result);
-        retval = result.retval;
-    }
+if(zh == nullptr)
+{
+error(E_WARNING,"Connection must be inited");
+return;
+}
+
+int rc = zoo_aget_children(zh, args[0].toCString(), 0, my_strings_completion, &result);
+if (rc)
+{
+retval = false;
+_this.set("errCode", rc);
+}
+else
+{
+zk_dispatch(_this, zh, result);
+retval = result.retval;
+}
 }
 
 PHPX_METHOD(zookeeper, setDebugLevel)
 {
-    long level = args[0].toInt();
-    zoo_set_debug_level((ZooLogLevel) level);
+long level = args[0].toInt();
+zoo_set_debug_level((ZooLogLevel) level);
 }
 
 PHPX_METHOD(zookeeper, getState)
 {
-    zhandle_t *zh = _this.oGet<zhandle_t>("handle", "zhandle_t");
-    retval = zoo_state(zh);
+zhandle_t *zh = _this.oGet<zhandle_t>("handle", "zhandle_t");
+if(zh == nullptr)
+{
+error(E_WARNING,"Connection must be inited");
+return;
+}
+retval = zoo_state(zh);
 }
 
 PHPX_METHOD(zookeeper, getClientId)
 {
-    const clientid_t *cid;
-    zhandle_t *zh = _this.oGet<zhandle_t>("handle", "zhandle_t");
-    cid = zoo_client_id(zh);
-    Array rv = Array();
-    rv.append((long)cid->client_id);
-    rv.append((char *)cid->passwd);
-    retval = rv;
+const clientid_t *cid;
+zhandle_t *zh = _this.oGet<zhandle_t>("handle", "zhandle_t");
+if(zh == nullptr)
+{
+error(E_WARNING,"Connection must be inited");
+return;
+}
+cid = zoo_client_id(zh);
+Array rv = Array();
+rv.append((long)cid->client_id);
+rv.append((char *)cid->passwd);
+retval = rv;
 }
 
 PHPX_METHOD(zookeeper, setDeterministicConnOrder)
 {
-    bool value = args[0].toBool();
-    zoo_deterministic_conn_order(value);
+bool value = args[0].toBool();
+zoo_deterministic_conn_order(value);
 }
 
 PHPX_METHOD(zookeeper, setLogStream)
 {
-    php_stream *stream;
-    FILE *fp;
-    zval *z_stream;
+php_stream *stream;
+FILE *fp;
+zval *z_stream;
 
-    if (!args.count())
-    {
-        _return_null: return;
-    }
+if (!args.count())
+{
+_return_null: return;
+}
 
-    if (!args[0].isResource())
-    {
-        error(E_WARNING, "expects parameter 1 to be resource");
-        goto _return_null;
-    }
+if (!args[0].isResource())
+{
+error(E_WARNING, "expects parameter 1 to be resource");
+goto _return_null;
+}
 
-    _this.set("logStream", args[0]);
-    z_stream = args[0].ptr();
+_this.set("logStream", args[0]);
+z_stream = args[0].ptr();
 
-    stream = (php_stream *)zend_fetch_resource(Z_RES_P(z_stream), "stream", Z_RES_P(z_stream)->type);
-    if (NULL == stream)
-    {
-        goto _return_null;
-    }
+stream = (php_stream *)zend_fetch_resource(Z_RES_P(z_stream), "stream", Z_RES_P(z_stream)->type);
+if (NULL == stream)
+{
+goto _return_null;
+}
 
-    if (FAILURE == php_stream_cast(stream, PHP_STREAM_AS_STDIO, (void ** ) &fp, REPORT_ERRORS))
-    {
-        goto _return_null;
-    }
+if (FAILURE == php_stream_cast(stream, PHP_STREAM_AS_STDIO, (void ** ) &fp, REPORT_ERRORS))
+{
+goto _return_null;
+}
 
-    zoo_set_log_stream(fp);
+zoo_set_log_stream(fp);
 }
 
 PHPX_METHOD(zookeeper, setWatcher)
 {
-    if (args.count() == 0)
-    {
-        _return_null: return;
-    }
-    if (!args[0].isCallable())
-    {
-        error(E_WARNING, "expects parameter 1 to be callable");
-        goto _return_null;
-    }
-    zhandle_t *zh = _this.oGet<zhandle_t>("handle", "zhandle_t");
-    _this.set("watcher", args[0]);
-    zoo_set_watcher(zh, watch_func);
+if (args.count() == 0)
+{
+_return_null: return;
+}
+if (!args[0].isCallable())
+{
+error(E_WARNING, "expects parameter 1 to be callable");
+goto _return_null;
+}
+zhandle_t *zh = _this.oGet<zhandle_t>("handle", "zhandle_t");
+if(zh == nullptr)
+{
+goto _return_null;
+}
+_this.set("watcher", args[0]);
+zoo_set_watcher(zh, watch_func);
 }
 
 void zookeeper_dtor(zend_resource *res)
 {
     zhandle_t *zh = static_cast<zhandle_t *>(res->ptr);
-    zookeeper_close(zh);
+    if(zh != nullptr) {
+        zookeeper_close(zh);
+    }
 }
 
 PHPX_METHOD(zookeeper, setAcl)
 {
-    struct ACL_vector *zookeeper_acl;
-    QueryResult result;
-    long version = -1;
-    //至少有一个参数
-    if (args.count() < 1)
-    {
-        error(E_WARNING, "must be have one param");
-        fail: retval = false;
-        return;
-    }
+struct ACL_vector *zookeeper_acl;
+QueryResult result;
+long version = -1;
+//至少有一个参数
+if (args.count() < 1)
+{
+error(E_WARNING, "must be have one param");
+fail: retval = false;
+return;
+}
 
-    //如果第一个参数不是一个字符串
-    if (!(args[0].isString()))
-    {
-        error(E_WARNING, "first param must be string");
-        goto fail;
-    }
+//如果第一个参数不是一个字符串
+if (!(args[0].isString()))
+{
+error(E_WARNING, "first param must be string");
+goto fail;
+}
 
 
-    //版本号必须是一个整数
-    if (args.count() > 1 && args.count() == 2)
-    {
-        if (!(args[1].isArray()))
-        {
-            error(E_WARNING, "second param must be array");
-            goto fail;
-        }
-    }
+//版本号必须是一个整数
+if (args.count() > 1 && args.count() == 2)
+{
+if (!(args[1].isArray()))
+{
+error(E_WARNING, "second param must be array");
+goto fail;
+}
+}
 
-    if (args.count() == 3)
-    {
-        if (!(args[2].isInt()))
-        {
-            error(E_WARNING, "third param must be int");
-            goto fail;
-        }
-        version = args[2].toInt();
-    }
+if (args.count() == 3)
+{
+if (!(args[2].isInt()))
+{
+error(E_WARNING, "third param must be int");
+goto fail;
+}
+version = args[2].toInt();
+}
 
-    Array acl_array(args[1]);
-    zookeeper_acl = zKLib::convert_array_to_acl(&acl_array);
-    if (!(zookeeper_acl))
-    {
-        error(E_WARNING, "acl array set error");
-        goto fail;
-    }
+Array acl_array(args[1]);
+zookeeper_acl = zKLib::convert_array_to_acl(&acl_array);
+if (!(zookeeper_acl))
+{
+error(E_WARNING, "acl array set error");
+goto fail;
+}
 
-    zhandle_t *zh = _this.oGet<zhandle_t>("handle", "zhandle_t");
-    int rc = zoo_aset_acl(zh,args[0].toCString(),version,zookeeper_acl,my_set_acl_completion,&result);
-    zKLib::free_acl_struct(zookeeper_acl);
-    if (rc)
-    {
-        retval = false;
-        _this.set("errCode", rc);
-    }
-    else
-    {
-        zk_dispatch(_this, zh, result);
-        retval = result.retval;
-    }
+zhandle_t *zh = _this.oGet<zhandle_t>("handle", "zhandle_t");
+if(zh == nullptr)
+{
+error(E_WARNING,"Connection must be inited");
+return;
+}
+int rc = zoo_aset_acl(zh,args[0].toCString(),version,zookeeper_acl,my_set_acl_completion,&result);
+zKLib::free_acl_struct(zookeeper_acl);
+if (rc)
+{
+retval = false;
+_this.set("errCode", rc);
+}
+else
+{
+zk_dispatch(_this, zh, result);
+retval = result.retval;
+}
 }
 
 PHPX_METHOD(zookeeper, watch)
 {
-    zhandle_t *zh = _this.oGet<zhandle_t>("handle", "zhandle_t");
-    QueryResult result;
+zhandle_t *zh = _this.oGet<zhandle_t>("handle", "zhandle_t");
+QueryResult result;
 
-    int rc = zoo_awget(zh, args[0].toCString(), watch_func, &_this, my_silent_data_completion, &result);
-    if (rc)
-    {
-        retval = false;
-    }
-    else
-    {
-        zk_dispatch(_this, zh, result);
-    }
+if(zh == nullptr)
+{
+error(E_WARNING,"Connection must be inited");
+return;
+}
+
+int rc = zoo_awget(zh, args[0].toCString(), watch_func, &_this, my_silent_data_completion, &result);
+if (rc)
+{
+retval = false;
+}
+else
+{
+zk_dispatch(_this, zh, result);
+}
 }
 
 PHPX_METHOD(zookeeper, watchChildren)
 {
-    zhandle_t *zh = _this.oGet<zhandle_t>("handle", "zhandle_t");
-    QueryResult result;
+zhandle_t *zh = _this.oGet<zhandle_t>("handle", "zhandle_t");
+QueryResult result;
 
-    int rc = zoo_awget_children(zh, args[0].toCString(), watch_func, &_this, my_strings_completion, &result);
-    if (rc)
-    {
-        retval = false;
-    }
-    else
-    {
-        zk_dispatch(_this, zh, result);
-    }
+if(zh == nullptr)
+{
+error(E_WARNING,"Connection must be inited");
+return;
+}
+
+int rc = zoo_awget_children(zh, args[0].toCString(), watch_func, &_this, my_strings_completion, &result);
+if (rc)
+{
+retval = false;
+}
+else
+{
+zk_dispatch(_this, zh, result);
+}
 }
 
 PHPX_METHOD(zookeeper, waitEvent)
 {
-    zhandle_t *zh = _this.oGet<zhandle_t>("handle", "zhandle_t");
-    QueryResult result;
+zhandle_t *zh = _this.oGet<zhandle_t>("handle", "zhandle_t");
+QueryResult result;
 
-    int fd, rc, events = ZOOKEEPER_READ;
-    struct timeval tv;
+if(zh == nullptr)
+{
+error(E_WARNING,"Connection must be inited");
+return;
+}
 
-    while (true)
-    {
-        int rc = zookeeper_interest(zh, &fd, &events, &tv);
-        if (rc)
-        {
-            _error: _this.set("errCode", rc);
-            result.retval = false;
-            return;
-        }
-        if (swoole_coroutine_socket_wait_event(fd, 512, 1) < 0)
-        {
-            result.retval = false;
-            return;
-        }
-        rc = zookeeper_process(zh, events);
-        if (rc)
-        {
-            goto _error;
-        }
-    }
+int fd, rc, events = ZOOKEEPER_READ;
+struct timeval tv;
+
+while (true)
+{
+int rc = zookeeper_interest(zh, &fd, &events, &tv);
+if (rc)
+{
+_error: _this.set("errCode", rc);
+result.retval = false;
+return;
+}
+if (swoole_coroutine_socket_wait_event(fd, 512, 1) < 0)
+{
+result.retval = false;
+return;
+}
+rc = zookeeper_process(zh, events);
+if (rc)
+{
+goto _error;
+}
+}
 }
 
 PHPX_EXTENSION()
@@ -779,9 +868,9 @@ PHPX_EXTENSION()
     ext->require("swoole");
 
     ext->info(
-    { "zookeeper support", "enabled" },
-    {
-    { "version", ext->version },
-    { "date", "2018-08-31" }, });
+            { "zookeeper support", "enabled" },
+            {
+                    { "version", ext->version },
+                    { "date", "2018-08-31" }, });
     return ext;
 }
