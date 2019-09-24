@@ -48,7 +48,7 @@ array(2) {
     ["numChildren"]=>
     int(0)
     ["pzxid"]=>
-    int(154)
+    int(%d)
   }
   [1]=>
   array(1) {
