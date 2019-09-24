@@ -17,7 +17,7 @@ go(function () {
     $zk = new zookeeper(TEST_ZOOKEEPER_FULL_URL, TEST_ZOOKEEPER_TIMEOUT);
     if (!$zk->exists(KEY))
     {
-        var_dump($zk->create(KEY, 'parent'));
+        $zk->create(KEY, 'parent');
     }
     var_dump($zk->create(KEY."/a", "hello", ZOO_EPHEMERAL), $zk->errCode);
     var_dump($zk->create(KEY."/b", "world", ZOO_EPHEMERAL), $zk->errCode);
