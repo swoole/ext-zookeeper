@@ -342,15 +342,28 @@ void my_acl_completion(int rc, struct ACL_vector *acl, struct Stat *stat, const 
     result->running = false;
 }
 
+static inline zhandle_t* get_class_handle(Object &_this,const char* key,const char* resource_name)
+{
+    auto zh = _this.oGet<zhandle_t>(key, resource_name);
+    if(zh == nullptr)
+    {
+        zend_throw_exception_ex(NULL,0,"Could not get zookeeper handle");
+        return nullptr;
+    }else{
+        return  zh;
+    }
+}
+
 PHPX_METHOD(zookeeper, __construct)
 {
     auto host = args[0];
     double recv_timeout = args[1].toInt();
     int recv_timeout_ms = recv_timeout * 1000;
     zoo_deterministic_conn_order(1);
+
     zhandle_t *zh = zookeeper_init(host.toCString(), nullptr, recv_timeout_ms, 0, NULL, 0);
     if(!zh) {
-        zend_throw_exception(NULL,"Could not create zookeeper handle", 0);
+        zend_throw_exception(NULL,"connect zookeeper of server failed", 0);
         _this.oSet<zhandle_t>("handle", "zhandle_t", NULL);
         return;
     }else{
@@ -360,7 +373,11 @@ PHPX_METHOD(zookeeper, __construct)
 
 PHPX_METHOD(zookeeper, get)
 {
-    zhandle_t *zh = _this.oGet<zhandle_t>("handle", "zhandle_t");
+    zhandle_t *zh = get_class_handle(_this,"handle","zhandle_t");
+    if(!zh)
+    {
+        return;
+    }
     QueryResult result;
     int rc = zoo_aget(zh, args[0].toCString(), 0, my_silent_data_completion, &result);
     if (rc)
@@ -377,8 +394,13 @@ PHPX_METHOD(zookeeper, get)
 
 PHPX_METHOD(zookeeper, addAuth)
 {
-    zhandle_t *zh = _this.oGet<zhandle_t>("handle", "zhandle_t");
+    zhandle_t *zh = get_class_handle(_this,"handle","zhandle_t");
     QueryResult result;
+
+    if(!zh)
+    {
+        return;
+    }
 
     if (args.count() > 2)
     {
@@ -400,8 +422,13 @@ PHPX_METHOD(zookeeper, addAuth)
 
 PHPX_METHOD(zookeeper, getAcl)
 {
-    zhandle_t *zh = _this.oGet<zhandle_t>("handle", "zhandle_t");
+    zhandle_t *zh = get_class_handle(_this,"handle","zhandle_t");
     QueryResult result;
+
+    if(!zh)
+    {
+        return;
+    }
 
     int rc = zoo_aget_acl(zh, args[0].toCString(), my_acl_completion, &result);
     if (rc)
@@ -418,8 +445,13 @@ PHPX_METHOD(zookeeper, getAcl)
 
 PHPX_METHOD(zookeeper, exists)
 {
-    zhandle_t *zh = _this.oGet<zhandle_t>("handle", "zhandle_t");
+    zhandle_t *zh = get_class_handle(_this,"handle","zhandle_t");
     QueryResult result;
+
+    if(!zh)
+    {
+        return;
+    }
 
     int rc = zoo_aexists(zh, args[0].toCString(), 0, my_stat_completion, &result);
     if (rc)
@@ -436,8 +468,13 @@ PHPX_METHOD(zookeeper, exists)
 
 PHPX_METHOD(zookeeper, create)
 {
-    zhandle_t *zh = _this.oGet<zhandle_t>("handle", "zhandle_t");
+    zhandle_t *zh = get_class_handle(_this,"handle","zhandle_t");
     QueryResult result;
+
+    if(!zh)
+    {
+        return;
+    }
 
     long flags = args.count() >= 3 ? args[2].toInt() : 0;
     int rc = zoo_acreate(zh, args[0].toCString(), args[1].toCString(), args[1].length(), &ZOO_OPEN_ACL_UNSAFE, flags,
@@ -456,7 +493,7 @@ PHPX_METHOD(zookeeper, create)
 
 PHPX_METHOD(zookeeper, set)
 {
-    zhandle_t *zh = _this.oGet<zhandle_t>("handle", "zhandle_t");
+    zhandle_t *zh = get_class_handle(_this,"handle","zhandle_t");
     QueryResult result;
     long version = -1;
     if (args.count() > 2)
@@ -464,6 +501,10 @@ PHPX_METHOD(zookeeper, set)
         version = args[2].toInt();
     }
 
+    if(!zh)
+    {
+        return;
+    }
     int rc = zoo_aset(zh, args[0].toCString(), args[1].toCString(), args[1].length(), (int) version,
             my_silent_stat_completion, &result);
 
@@ -481,9 +522,14 @@ PHPX_METHOD(zookeeper, set)
 
 PHPX_METHOD(zookeeper, delete)
 {
-    zhandle_t *zh = _this.oGet<zhandle_t>("handle", "zhandle_t");
+    zhandle_t *zh = get_class_handle(_this,"handle","zhandle_t");
     QueryResult result;
     long version = -1;
+
+    if(!zh)
+    {
+        return;
+    }
 
     if (args.count() > 1)
     {
@@ -505,8 +551,12 @@ PHPX_METHOD(zookeeper, delete)
 
 PHPX_METHOD(zookeeper, getChildren)
 {
-    zhandle_t *zh = _this.oGet<zhandle_t>("handle", "zhandle_t");
     QueryResult result;
+    zhandle_t *zh = get_class_handle(_this,"handle","zhandle_t");
+    if(!zh)
+    {
+        return;
+    }
 
     int rc = zoo_aget_children(zh, args[0].toCString(), 0, my_strings_completion, &result);
     if (rc)
@@ -529,14 +579,22 @@ PHPX_METHOD(zookeeper, setDebugLevel)
 
 PHPX_METHOD(zookeeper, getState)
 {
-    zhandle_t *zh = _this.oGet<zhandle_t>("handle", "zhandle_t");
+    zhandle_t *zh = get_class_handle(_this,"handle","zhandle_t");
+    if(!zh)
+    {
+        return;
+    }
     retval = zoo_state(zh);
 }
 
 PHPX_METHOD(zookeeper, getClientId)
 {
     const clientid_t *cid;
-    zhandle_t *zh = _this.oGet<zhandle_t>("handle", "zhandle_t");
+    zhandle_t *zh = get_class_handle(_this,"handle","zhandle_t");
+    if(!zh)
+    {
+        return;
+    }
     cid = zoo_client_id(zh);
     Array rv = Array();
     rv.append((long)cid->client_id);
@@ -595,7 +653,11 @@ PHPX_METHOD(zookeeper, setWatcher)
         error(E_WARNING, "expects parameter 1 to be callable");
         goto _return_null;
     }
-    zhandle_t *zh = _this.oGet<zhandle_t>("handle", "zhandle_t");
+    zhandle_t *zh = get_class_handle(_this,"handle","zhandle_t");
+    if(!zh)
+    {
+        return;
+    }
     _this.set("watcher", args[0]);
     zoo_set_watcher(zh, watch_func);
 }
@@ -657,7 +719,11 @@ PHPX_METHOD(zookeeper, setAcl)
         goto fail;
     }
 
-    zhandle_t *zh = _this.oGet<zhandle_t>("handle", "zhandle_t");
+    zhandle_t *zh = get_class_handle(_this,"handle","zhandle_t");
+    if(!zh)
+    {
+        return;
+    }
     int rc = zoo_aset_acl(zh,args[0].toCString(),version,zookeeper_acl,my_set_acl_completion,&result);
     zKLib::free_acl_struct(zookeeper_acl);
     if (rc)
@@ -674,8 +740,12 @@ PHPX_METHOD(zookeeper, setAcl)
 
 PHPX_METHOD(zookeeper, watch)
 {
-    zhandle_t *zh = _this.oGet<zhandle_t>("handle", "zhandle_t");
+    zhandle_t *zh = get_class_handle(_this,"handle","zhandle_t");
     QueryResult result;
+    if(!zh)
+    {
+        return;
+    }
     int rc = zoo_awget(zh, args[0].toCString(), watch_func, &_this, my_silent_data_completion, &result);
     if (rc)
     {
@@ -689,8 +759,13 @@ PHPX_METHOD(zookeeper, watch)
 
 PHPX_METHOD(zookeeper, watchChildren)
 {
-    zhandle_t *zh = _this.oGet<zhandle_t>("handle", "zhandle_t");
+    zhandle_t *zh = get_class_handle(_this,"handle","zhandle_t");
     QueryResult result;
+
+    if(!zh)
+    {
+        return;
+    }
 
     int rc = zoo_awget_children(zh, args[0].toCString(), watch_func, &_this, my_strings_completion, &result);
     if (rc)
@@ -705,8 +780,13 @@ PHPX_METHOD(zookeeper, watchChildren)
 
 PHPX_METHOD(zookeeper, waitEvent)
 {
-    zhandle_t *zh = _this.oGet<zhandle_t>("handle", "zhandle_t");
+    zhandle_t *zh = get_class_handle(_this,"handle","zhandle_t");
     QueryResult result;
+
+    if(!zh)
+    {
+        return;
+    }
 
     int fd, rc, events = ZOOKEEPER_READ;
     struct timeval tv;
