@@ -378,7 +378,7 @@ PHPX_METHOD(zookeeper, __construct)
 
 PHPX_METHOD(zookeeper, get)
 {
-    zhandle_t *zh = get_class_handle(_this,"handle","zhandle_t");
+    zhandle_t *zh = get_class_handle(_this);
     if (!zh)
     {
         return;
@@ -399,7 +399,7 @@ PHPX_METHOD(zookeeper, get)
 
 PHPX_METHOD(zookeeper, addAuth)
 {
-    zhandle_t *zh = get_class_handle(_this,"handle","zhandle_t");
+    zhandle_t *zh = get_class_handle(_this);
     QueryResult result;
 
     if (!zh)
@@ -427,7 +427,7 @@ PHPX_METHOD(zookeeper, addAuth)
 
 PHPX_METHOD(zookeeper, getAcl)
 {
-    zhandle_t *zh = get_class_handle(_this,"handle","zhandle_t");
+    zhandle_t *zh = get_class_handle(_this);
     QueryResult result;
 
     if (!zh)
@@ -450,7 +450,7 @@ PHPX_METHOD(zookeeper, getAcl)
 
 PHPX_METHOD(zookeeper, exists)
 {
-    zhandle_t *zh = get_class_handle(_this,"handle","zhandle_t");
+    zhandle_t *zh = get_class_handle(_this);
     QueryResult result;
 
     if (!zh)
@@ -473,7 +473,7 @@ PHPX_METHOD(zookeeper, exists)
 
 PHPX_METHOD(zookeeper, create)
 {
-    zhandle_t *zh = get_class_handle(_this,"handle","zhandle_t");
+    zhandle_t *zh = get_class_handle(_this);
     QueryResult result;
 
     if (!zh)
@@ -498,7 +498,7 @@ PHPX_METHOD(zookeeper, create)
 
 PHPX_METHOD(zookeeper, set)
 {
-    zhandle_t *zh = get_class_handle(_this,"handle","zhandle_t");
+    zhandle_t *zh = get_class_handle(_this);
     QueryResult result;
     long version = -1;
     if (args.count() > 2)
@@ -527,7 +527,7 @@ PHPX_METHOD(zookeeper, set)
 
 PHPX_METHOD(zookeeper, delete)
 {
-    zhandle_t *zh = get_class_handle(_this,"handle","zhandle_t");
+    zhandle_t *zh = get_class_handle(_this);
     QueryResult result;
     long version = -1;
 
@@ -557,7 +557,7 @@ PHPX_METHOD(zookeeper, delete)
 PHPX_METHOD(zookeeper, getChildren)
 {
     QueryResult result;
-    zhandle_t *zh = get_class_handle(_this,"handle","zhandle_t");
+    zhandle_t *zh = get_class_handle(_this);
     if (!zh)
     {
         return;
@@ -584,7 +584,7 @@ PHPX_METHOD(zookeeper, setDebugLevel)
 
 PHPX_METHOD(zookeeper, getState)
 {
-    zhandle_t *zh = get_class_handle(_this,"handle","zhandle_t");
+    zhandle_t *zh = get_class_handle(_this);
     if (!zh)
     {
         return;
@@ -595,7 +595,7 @@ PHPX_METHOD(zookeeper, getState)
 PHPX_METHOD(zookeeper, getClientId)
 {
     const clientid_t *cid;
-    zhandle_t *zh = get_class_handle(_this,"handle","zhandle_t");
+    zhandle_t *zh = get_class_handle(_this);
     if (!zh)
     {
         return;
@@ -658,7 +658,7 @@ PHPX_METHOD(zookeeper, setWatcher)
         error(E_WARNING, "expects parameter 1 to be callable");
         goto _return_null;
     }
-    zhandle_t *zh = get_class_handle(_this,"handle","zhandle_t");
+    zhandle_t *zh = get_class_handle(_this);
     if (!zh)
     {
         return;
@@ -725,7 +725,7 @@ PHPX_METHOD(zookeeper, setAcl)
         goto fail;
     }
 
-    zhandle_t *zh = get_class_handle(_this,"handle","zhandle_t");
+    zhandle_t *zh = get_class_handle(_this);
     if (!zh)
     {
         return;
@@ -746,7 +746,7 @@ PHPX_METHOD(zookeeper, setAcl)
 
 PHPX_METHOD(zookeeper, watch)
 {
-    zhandle_t *zh = get_class_handle(_this,"handle","zhandle_t");
+    zhandle_t *zh = get_class_handle(_this);
     QueryResult result;
     if (!zh)
     {
@@ -765,7 +765,7 @@ PHPX_METHOD(zookeeper, watch)
 
 PHPX_METHOD(zookeeper, watchChildren)
 {
-    zhandle_t *zh = get_class_handle(_this,"handle","zhandle_t");
+    zhandle_t *zh = get_class_handle(_this);
     QueryResult result;
 
     if (!zh)
@@ -786,7 +786,7 @@ PHPX_METHOD(zookeeper, watchChildren)
 
 PHPX_METHOD(zookeeper, waitEvent)
 {
-    zhandle_t *zh = get_class_handle(_this,"handle","zhandle_t");
+    zhandle_t *zh = get_class_handle(_this);
     QueryResult result;
 
     if (!zh)
