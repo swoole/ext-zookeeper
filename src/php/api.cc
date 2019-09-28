@@ -342,14 +342,16 @@ void my_acl_completion(int rc, struct ACL_vector *acl, struct Stat *stat, const 
     result->running = false;
 }
 
-static inline zhandle_t* get_class_handle(Object &_this,const char* key,const char* resource_name)
+static inline zhandle_t* get_class_handle(Object &_this)
 {
-    auto zh = _this.oGet<zhandle_t>(key, resource_name);
-    if(zh == nullptr)
+    auto zh = _this.oGet<zhandle_t>("handle","zhandle_t");
+    if (zh == nullptr)
     {
         zend_throw_exception_ex(NULL,0,"Could not get zookeeper handle");
         return nullptr;
-    }else{
+    }
+    else
+    {
         return  zh;
     }
 }
@@ -362,11 +364,14 @@ PHPX_METHOD(zookeeper, __construct)
     zoo_deterministic_conn_order(1);
 
     zhandle_t *zh = zookeeper_init(host.toCString(), nullptr, recv_timeout_ms, 0, NULL, 0);
-    if(!zh) {
+    if (!zh)
+    {
         zend_throw_exception(NULL,"connect zookeeper of server failed", 0);
         _this.oSet<zhandle_t>("handle", "zhandle_t", NULL);
         return;
-    }else{
+    }
+    else
+    {
         _this.oSet<zhandle_t>("handle", "zhandle_t", zh);
     }
 }
@@ -374,7 +379,7 @@ PHPX_METHOD(zookeeper, __construct)
 PHPX_METHOD(zookeeper, get)
 {
     zhandle_t *zh = get_class_handle(_this,"handle","zhandle_t");
-    if(!zh)
+    if (!zh)
     {
         return;
     }
@@ -397,7 +402,7 @@ PHPX_METHOD(zookeeper, addAuth)
     zhandle_t *zh = get_class_handle(_this,"handle","zhandle_t");
     QueryResult result;
 
-    if(!zh)
+    if (!zh)
     {
         return;
     }
@@ -425,7 +430,7 @@ PHPX_METHOD(zookeeper, getAcl)
     zhandle_t *zh = get_class_handle(_this,"handle","zhandle_t");
     QueryResult result;
 
-    if(!zh)
+    if (!zh)
     {
         return;
     }
@@ -448,7 +453,7 @@ PHPX_METHOD(zookeeper, exists)
     zhandle_t *zh = get_class_handle(_this,"handle","zhandle_t");
     QueryResult result;
 
-    if(!zh)
+    if (!zh)
     {
         return;
     }
@@ -471,7 +476,7 @@ PHPX_METHOD(zookeeper, create)
     zhandle_t *zh = get_class_handle(_this,"handle","zhandle_t");
     QueryResult result;
 
-    if(!zh)
+    if (!zh)
     {
         return;
     }
@@ -501,7 +506,7 @@ PHPX_METHOD(zookeeper, set)
         version = args[2].toInt();
     }
 
-    if(!zh)
+    if (!zh)
     {
         return;
     }
@@ -526,7 +531,7 @@ PHPX_METHOD(zookeeper, delete)
     QueryResult result;
     long version = -1;
 
-    if(!zh)
+    if (!zh)
     {
         return;
     }
@@ -553,7 +558,7 @@ PHPX_METHOD(zookeeper, getChildren)
 {
     QueryResult result;
     zhandle_t *zh = get_class_handle(_this,"handle","zhandle_t");
-    if(!zh)
+    if (!zh)
     {
         return;
     }
@@ -580,7 +585,7 @@ PHPX_METHOD(zookeeper, setDebugLevel)
 PHPX_METHOD(zookeeper, getState)
 {
     zhandle_t *zh = get_class_handle(_this,"handle","zhandle_t");
-    if(!zh)
+    if (!zh)
     {
         return;
     }
@@ -591,7 +596,7 @@ PHPX_METHOD(zookeeper, getClientId)
 {
     const clientid_t *cid;
     zhandle_t *zh = get_class_handle(_this,"handle","zhandle_t");
-    if(!zh)
+    if (!zh)
     {
         return;
     }
@@ -654,7 +659,7 @@ PHPX_METHOD(zookeeper, setWatcher)
         goto _return_null;
     }
     zhandle_t *zh = get_class_handle(_this,"handle","zhandle_t");
-    if(!zh)
+    if (!zh)
     {
         return;
     }
@@ -665,7 +670,8 @@ PHPX_METHOD(zookeeper, setWatcher)
 void zookeeper_dtor(zend_resource *res)
 {
     zhandle_t *zh = static_cast<zhandle_t *>(res->ptr);
-    if(zh != nullptr) {
+    if (zh != nullptr)
+    {
         zookeeper_close(zh);
     }
 }
@@ -720,7 +726,7 @@ PHPX_METHOD(zookeeper, setAcl)
     }
 
     zhandle_t *zh = get_class_handle(_this,"handle","zhandle_t");
-    if(!zh)
+    if (!zh)
     {
         return;
     }
@@ -742,7 +748,7 @@ PHPX_METHOD(zookeeper, watch)
 {
     zhandle_t *zh = get_class_handle(_this,"handle","zhandle_t");
     QueryResult result;
-    if(!zh)
+    if (!zh)
     {
         return;
     }
@@ -762,7 +768,7 @@ PHPX_METHOD(zookeeper, watchChildren)
     zhandle_t *zh = get_class_handle(_this,"handle","zhandle_t");
     QueryResult result;
 
-    if(!zh)
+    if (!zh)
     {
         return;
     }
@@ -783,7 +789,7 @@ PHPX_METHOD(zookeeper, waitEvent)
     zhandle_t *zh = get_class_handle(_this,"handle","zhandle_t");
     QueryResult result;
 
-    if(!zh)
+    if (!zh)
     {
         return;
     }
