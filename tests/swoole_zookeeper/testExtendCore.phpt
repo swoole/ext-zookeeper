@@ -8,7 +8,7 @@ class ourZooClass extends zookeeper{
 
     public function __construct()
     {
-        parent::__construct();
+//        parent::__construct();
     }
 
     public function test()
@@ -18,5 +18,8 @@ class ourZooClass extends zookeeper{
 }
 
 $class = new ourZooClass();
-
+try{
 $class->test();
+}catch(Exception $e){
+var_dump($class);
+}
