@@ -4,6 +4,8 @@ set -x -e
 
 CURRENT=`pwd`
 
+phpx clean
+
 export  PHPX_VERSION="v0.1.1"
 export  SWOOLE_VERSION="master"
 
@@ -20,4 +22,8 @@ export  SWOOLE_SRC_URL="https://github.com/swoole/swoole-src/archive/$SWOOLE_VER
 
 [[ -f $CURRENT/data/swoole-src.tar.gz ]] || wget -O $CURRENT/data/swoole-src.tar.gz $SWOOLE_SRC_URL
 
-circleci local execute -e LOCAL=1 -v $CURRENT/data:/tmp/data 
+T_JOB=${JOB:=test-php72}
+
+echo "JOB=$T_JOB ./.circleci/run_local.sh";
+
+circleci local execute -e LOCAL=1 -v $CURRENT/data:/tmp/data --job $T_JOB

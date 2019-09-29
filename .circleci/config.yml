@@ -110,11 +110,11 @@ jobs:
           name: run tests
           command: ./tests/start.sh
 
-  test-php70:
-    <<: *common-test
-    docker:
-      - image: circleci/php:7.0-cli
-      - image: zookeeper
+  # test-php70:
+  #   <<: *common-test
+  #   docker:
+  #     - image: circleci/php:7.0-cli
+  #     - image: zookeeper
   test-php71:
     <<: *common-test
     docker:
@@ -135,7 +135,7 @@ workflows:
   version: 2
   workflow:
     jobs:
-      - test-php70
+      # - test-php70
       - test-php71
       - test-php72
       - test-php73
