@@ -15,20 +15,18 @@ const KEY = "/test_dir";
 go(function () {
     zookeeper::setDebugLevel(1);
     $zk = new zookeeper(TEST_ZOOKEEPER_FULL_URL, TEST_ZOOKEEPER_TIMEOUT);
-    if (!$zk->exists(KEY))
+    if (!$zk->exists(KEY) && $zk->errCode === -101) // key 不存在
     {
-        var_dump($zk->create(KEY, 'parent'));
+        $zk->create(KEY, 'parent');
     }
-    var_dump($zk->create(KEY."/a", "hello", ZOO_EPHEMERAL), $zk->errCode);
-    var_dump($zk->create(KEY."/b", "world", ZOO_EPHEMERAL), $zk->errCode);
+    var_dump($zk->create(KEY."/a", "hello", ZOO_EPHEMERAL));
+    var_dump($zk->create(KEY."/b", "world", ZOO_EPHEMERAL));
     var_dump($zk->getChildren(KEY));
 });
 ?>
 --EXPECT--
 string(11) "/test_dir/a"
-int(0)
 string(11) "/test_dir/b"
-int(0)
 array(2) {
   [0]=>
   string(1) "a"

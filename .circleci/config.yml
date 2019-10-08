@@ -9,13 +9,13 @@ jobs:
       - image: circleci/php:7.1-cli
       - image: zookeeper
     environment:
-      PHPX_VERSION: "0.1.1"
-      SWOOLE_VERSION: "4.3.3"
-      PHPX_BIN_URL: "https://github.com/swoole/phpx/releases/download/v$PHPX_VERSION/phpx"
-      PHPX_SRC_URL: "https://github.com/swoole/phpx/archive/v$PHPX_VERSION.tar.gz"
+      PHPX_VERSION: "v0.1.1"
+      SWOOLE_VERSION: "master"
+      PHPX_BIN_URL: "https://github.com/swoole/phpx/releases/download/$PHPX_VERSION/phpx"
+      PHPX_SRC_URL: "https://github.com/swoole/phpx/archive/$PHPX_VERSION.tar.gz"
       PHPX_COMPILE_CMD: "cmake . && sudo make install"
-      SWOOLE_SRC_URL: "https://github.com/swoole/swoole-src/archive/v$SWOOLE_VERSION.tar.gz"
-      SWOOLE_COMPILE_CMD: "phpize && ./configure && sudo make install"
+      SWOOLE_SRC_URL: "https://github.com/swoole/swoole-src/archive/$SWOOLE_VERSION.tar.gz"
+      SWOOLE_COMPILE_CMD: "phpize && ./configure && sudo make -j 8 install"
     
     steps:
       - run:
@@ -70,7 +70,7 @@ jobs:
               eval "wget -O ./data/phpx.tar.gz $PHPX_SRC_URL"
             fi
 
-            eval "tar zxvf ./data/phpx.tar.gz -C ./data/ && cd ./data/phpx-$PHPX_VERSION/ && $PHPX_COMPILE_CMD"
+            eval "tar zxvf ./data/phpx.tar.gz -C ./data/ && cd ./data/phpx-${PHPX_VERSION/[Vv]/}/ && $PHPX_COMPILE_CMD"
 
       - run:
           name: download swoole src, then compile
@@ -80,7 +80,7 @@ jobs:
               eval "wget -O ./data/swoole-src.tar.gz $SWOOLE_SRC_URL"
             fi
             
-            eval "tar zxvf ./data/swoole-src.tar.gz -C ./data/ && cd ./data/swoole-src-$SWOOLE_VERSION/ && $SWOOLE_COMPILE_CMD"
+            eval "tar zxvf ./data/swoole-src.tar.gz -C ./data/ && cd ./data/swoole-src-${SWOOLE_VERSION/[Vv]/}/ && $SWOOLE_COMPILE_CMD"
 
       - run:
           name: build ext-zookeeper 
@@ -110,6 +110,11 @@ jobs:
           name: run tests
           command: ./tests/start.sh
 
+  # test-php70:
+  #   <<: *common-test
+  #   docker:
+  #     - image: circleci/php:7.0-cli
+  #     - image: zookeeper
   test-php71:
     <<: *common-test
     docker:
@@ -119,11 +124,6 @@ jobs:
     <<: *common-test
     docker:
       - image: circleci/php:7.2-cli
-      - image: zookeeper
-  test-php70:
-    <<: *common-test
-    docker:
-      - image: circleci/php:7.0-cli
       - image: zookeeper
   test-php73:
     <<: *common-test
@@ -135,7 +135,7 @@ workflows:
   version: 2
   workflow:
     jobs:
-      - test-php70
+      # - test-php70
       - test-php71
       - test-php72
       - test-php73

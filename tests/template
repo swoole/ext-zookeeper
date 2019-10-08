@@ -7,5 +7,6 @@ require __DIR__ . '/../inc/skipif.inc';
 <?php
 require __DIR__ . '/../inc/bootstrap.php';
 echo true;
+Swoole\Event::wait();
 --EXPECT--
 1
