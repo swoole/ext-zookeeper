@@ -9,7 +9,7 @@ jobs:
       - image: circleci/php:7.1-cli
       - image: zookeeper
     environment:
-      PHPX_VERSION: "v0.1.1"
+      PHPX_VERSION: "v0.1.2"
       SWOOLE_VERSION: "master"
       PHPX_BIN_URL: "https://github.com/swoole/phpx/releases/download/$PHPX_VERSION/phpx"
       PHPX_SRC_URL: "https://github.com/swoole/phpx/archive/$PHPX_VERSION.tar.gz"
