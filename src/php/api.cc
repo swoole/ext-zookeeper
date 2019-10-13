@@ -350,10 +350,7 @@ static inline zhandle_t* get_class_handle(Object &_this)
         zend_throw_exception_ex(NULL,0,"Could not get zookeeper handle");
         return nullptr;
     }
-    else
-    {
-        return  zh;
-    }
+    return zh;
 }
 
 PHPX_METHOD(zookeeper, __construct)
@@ -370,10 +367,7 @@ PHPX_METHOD(zookeeper, __construct)
         _this.oSet<zhandle_t>("handle", "zhandle_t", NULL);
         return;
     }
-    else
-    {
-        _this.oSet<zhandle_t>("handle", "zhandle_t", zh);
-    }
+    _this.oSet<zhandle_t>("handle", "zhandle_t", zh);
 }
 
 PHPX_METHOD(zookeeper, get)

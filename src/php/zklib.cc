@@ -184,7 +184,6 @@ bool zKLib::free_acl_struct(struct ACL_vector* acl_vector)
         efree(acl_vector->data);
         efree(acl_vector);
         return true;
-    }else{
-        return  false;
     }
+    return  false;
 }
