@@ -13,7 +13,7 @@ go(function () {
     });
 
     while (true) {
-        $retval = $zk->waitEvent();
+        $retval = $zk->wait();
         var_dump($retval);
     }
 });

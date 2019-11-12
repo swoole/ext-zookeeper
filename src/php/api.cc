@@ -368,7 +368,6 @@ PHPX_METHOD(zookeeper, __construct)
     {
         zend_throw_exception(NULL,"connect zookeeper of server failed", 0);
         _this.oSet<zhandle_t>("handle", "zhandle_t", NULL);
-        return;
     }
     else
     {
@@ -784,7 +783,7 @@ PHPX_METHOD(zookeeper, watchChildren)
     }
 }
 
-PHPX_METHOD(zookeeper, waitEvent)
+PHPX_METHOD(zookeeper, wait)
 {
     zhandle_t *zh = get_class_handle(_this);
     QueryResult result;
@@ -857,7 +856,7 @@ PHPX_EXTENSION()
         c->addMethod(PHPX_ME(zookeeper, getChildren));
         c->addMethod(PHPX_ME(zookeeper, watch));
         c->addMethod(PHPX_ME(zookeeper, watchChildren));
-        c->addMethod(PHPX_ME(zookeeper, waitEvent));
+        c->addMethod(PHPX_ME(zookeeper, wait));
         c->addMethod(PHPX_ME(zookeeper, setDebugLevel), STATIC);
         c->addMethod(PHPX_ME(zookeeper, getState));
         c->addMethod(PHPX_ME(zookeeper, getClientId));
