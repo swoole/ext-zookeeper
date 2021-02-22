@@ -1,0 +1,13 @@
+{
+    "project": {
+        "name": "swoole_zookeeper",
+	    "type": "ext"
+    },
+    "build": {
+        "ldflags": "-L/home/htf/workspace/phpx/lib",
+        "cxxflags": "-I/home/htf/workspace/phpx/include",
+        "cflags": "",
+	    "c_std": "",
+	    "cxx_std" : ""
+    }
+}

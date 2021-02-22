@@ -24,7 +24,7 @@
 /* we must not include config.h as a public header */
 #ifndef WIN32
 #include <sys/socket.h>
-#include "swoole/include/socket_hook.h"
+#include "ext/swoole/include/swoole_socket_hook.h"
 #include <sys/time.h>
 #endif
 
