@@ -5,15 +5,15 @@
 #include "phpx.h"
 
 using namespace php;
-using namespace zookeeperZend;
 
-//将路径的状态赋值到一个数组中
+namespace zookeeper {
+
 /**
- *
+ * 将路径的状态赋值到一个数组中
  * @param destArray
  * @param stat
  */
-void zKLib::convert_stat_to_array(Array *destArray, struct Stat *stat) {
+void convert_stat_to_array(Array *destArray, struct Stat *stat) {
     Array statArray;
     destArray->set("stat", statArray);
     statArray.set("czxid", (long) stat->czxid);
@@ -29,13 +29,12 @@ void zKLib::convert_stat_to_array(Array *destArray, struct Stat *stat) {
     statArray.set("pzxid", (long) stat->pzxid);
 }
 
-//将acl赋值到数组
 /**
- *
+ * 将acl赋值到数组
  * @param destArray
  * @param acl
  */
-void zKLib::convert_acl_to_array(Array *destArray, struct ACL_vector *acl) {
+void convert_acl_to_array(Array *destArray, struct ACL_vector *acl) {
     Array aclArray;
     destArray->set("acl", aclArray);
     for (int i = 0; i < acl->count; i++) {
@@ -51,45 +50,42 @@ void zKLib::convert_acl_to_array(Array *destArray, struct ACL_vector *acl) {
 }
 
 ////把一个数组转化为acl结构体,由于接口对外需要严格检查数据结构
-// bool zKLib::convert_array_to_acl(Array* param_array,struct ACL_vector *zookeeper_acl)
-//{
-//    Variant tmp_unit_check;
-//    //初始化结构体
-//    zookeeper_acl->count = (int32_t)param_array->count();
-//
-//    struct ACL zookeeper_acl_unit[zookeeper_acl->count];
-//
-//    for(int i=0;i<zookeeper_acl->count;i++) {
-//        struct Id acl_unit;
-//        tmp_unit_check = param_array->get(i);
-//        //检查索引防止用户填写错误
-//        if(tmp_unit_check == nullptr)
-//        {
-//            error(E_WARNING,"setAcl:get index error");
-//            return  false;
-//        }
-//        Array acl_unit_array(tmp_unit_check);
-//
-//        //检查索引防止用户填写错误
-//        if(tmp_unit_check == nullptr)
-//        {
-//            error(E_WARNING,"setAcl:get id error");
-//            return  false;
-//        }
-//
-//        tmp_unit_check = acl_unit_array.get("id");
-//        Array acl_unit_array_id(tmp_unit_check);
-//        zookeeper_acl_unit[i].perms = (int32_t)acl_unit_array.get("perms").toInt();
-//        acl_unit.id = acl_unit_array_id.get("id").toCString();
-//        acl_unit.scheme = acl_unit_array_id.get("scheme").toCString();
-//        zookeeper_acl_unit[i].id = acl_unit;
-//    }
-//    zookeeper_acl->data = zookeeper_acl_unit;
-//    return zookeeper_acl;
-//}
+bool convert_array_to_acl(Array *param_array, struct ACL_vector *zookeeper_acl) {
+    Variant tmp_unit_check;
+    //初始化结构体
+    zookeeper_acl->count = (int32_t) param_array->count();
+
+    struct ACL zookeeper_acl_unit[zookeeper_acl->count];
+
+    for (int i = 0; i < zookeeper_acl->count; i++) {
+        struct Id acl_unit;
+        tmp_unit_check = param_array->get(i);
+        //检查索引防止用户填写错误
+        if (tmp_unit_check == nullptr) {
+            error(E_WARNING, "setAcl:get index error");
+            return false;
+        }
+        Array acl_unit_array(tmp_unit_check);
+
+        //检查索引防止用户填写错误
+        if (tmp_unit_check == nullptr) {
+            error(E_WARNING, "setAcl:get id error");
+            return false;
+        }
+
+        tmp_unit_check = acl_unit_array.get("id");
+        Array acl_unit_array_id(tmp_unit_check);
+        zookeeper_acl_unit[i].perms = (int32_t) acl_unit_array.get("perms").toInt();
+        acl_unit.id = acl_unit_array_id.get("id").toCString();
+        acl_unit.scheme = acl_unit_array_id.get("scheme").toCString();
+        zookeeper_acl_unit[i].id = acl_unit;
+    }
+    zookeeper_acl->data = zookeeper_acl_unit;
+    return zookeeper_acl;
+}
 
 //把一个数组转化为acl结构体
-struct ACL_vector *zKLib::convert_array_to_acl(Array *param_array) {
+struct ACL_vector *convert_array_to_acl(Array *param_array) {
     struct ACL_vector *acl_vector;
     struct ACL *create_acl;
     struct ACL *acl_collect;
@@ -165,7 +161,7 @@ struct ACL_vector *zKLib::convert_array_to_acl(Array *param_array) {
 }
 
 //释放掉acl结构体
-bool zKLib::free_acl_struct(struct ACL_vector *acl_vector) {
+bool free_acl_struct(struct ACL_vector *acl_vector) {
     if (acl_vector && acl_vector->data) {
         for (int i = 0; i < acl_vector->count; i++) {
             efree((acl_vector->data + i)->id.id);
@@ -179,3 +175,4 @@ bool zKLib::free_acl_struct(struct ACL_vector *acl_vector) {
         return false;
     }
 }
+}  // namespace zookeeper

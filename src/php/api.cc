@@ -3,6 +3,8 @@
 #include <string.h>
 
 #include "phpx.h"
+#include "php_streams.h"
+#include "ext/swoole/include/swoole_api.h"
 #include "ext/swoole/include/swoole_coroutine_c_api.h"
 #include "zookeeper.h"
 #include "zklib.h"
@@ -10,7 +12,7 @@
 
 using namespace php;
 using namespace std;
-using namespace zookeeperZend;
+using namespace zookeeper;
 
 zhandle_t *handle = NULL;
 int connected = 0;
@@ -209,9 +211,9 @@ void my_acl_stat_completion(int rc, struct ACL_vector *acl, struct Stat *stat, c
     if (rc == ZOK) {
         Array res;
         //把acl转化到数组
-        zKLib::convert_acl_to_array(&res, acl);
+        convert_acl_to_array(&res, acl);
         //把stat转化到数组
-        zKLib::convert_stat_to_array(&res, stat);
+        convert_stat_to_array(&res, stat);
         result->retval = res;
     } else {
         result->retval = false;
@@ -458,7 +460,7 @@ PHPX_METHOD(Swoole_ZooKeeper, delete) {
     }
 
     if (args.count() > 1) {
-        version = args[2].toInt();
+        version = args[1].toInt();
     }
 
     int rc = zoo_adelete(zh, args[0].toCString(), (int) version, my_void_completion, &result);
@@ -608,7 +610,7 @@ PHPX_METHOD(Swoole_ZooKeeper, setAcl) {
     }
 
     Array acl_array(args[1]);
-    zookeeper_acl = zKLib::convert_array_to_acl(&acl_array);
+    zookeeper_acl = convert_array_to_acl(&acl_array);
     if (!(zookeeper_acl)) {
         error(E_WARNING, "acl array set error");
         goto fail;
@@ -619,7 +621,7 @@ PHPX_METHOD(Swoole_ZooKeeper, setAcl) {
         return;
     }
     int rc = zoo_aset_acl(zh, args[0].toCString(), version, zookeeper_acl, my_set_acl_completion, &result);
-    zKLib::free_acl_struct(zookeeper_acl);
+    free_acl_struct(zookeeper_acl);
     if (rc) {
         retval = false;
         _this.set("errCode", rc);
@@ -678,7 +680,8 @@ PHPX_METHOD(Swoole_ZooKeeper, wait) {
             result.retval = false;
             return;
         }
-        if (swoole_coroutine_socket_wait_event(fd, 512, 1) < 0) {
+        if (swoole_coroutine_socket_wait_event(fd, SW_EVENT_READ, (double) tv.tv_sec + (double) tv.tv_usec / 1000000) <
+            0) {
             result.retval = false;
             return;
         }
