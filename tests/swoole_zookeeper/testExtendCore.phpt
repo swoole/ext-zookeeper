@@ -26,21 +26,22 @@ class ourZooClass extends zookeeper{
 
     public function run()
     {
-        go(function(){
+        test(function(){
             try{
                 if (!$this->exists(TEST_ZOOKEEPER_PERSISTENT_KEY))
                 {
                     $this->create(TEST_ZOOKEEPER_PERSISTENT_KEY, "swoole");
                 }
                 $this->get(TEST_ZOOKEEPER_PERSISTENT_KEY);
-            }catch(Exception $e){
-                 var_dump($this);
-             }
+            } catch(Exception $e){
+                var_dump($this);
+            }
         });
-
-        Swoole\Event::wait();
     }
 }
 
+zookeeper::setDebugLevel(1);
 $class = new ourZooClass();
 $class->run();
+?>
+--EXPECT--
