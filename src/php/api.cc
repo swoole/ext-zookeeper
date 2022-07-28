@@ -65,6 +65,12 @@ static void dump_stat(const struct Stat *stat) {
 static void zk_dispatch(Object &_this, zhandle_t *zh, QueryResult &result) {
     int fd, rc, events = ZOOKEEPER_READ;
     struct timeval tv;
+    fd_set rfds, wfds, efds;
+    if (!swoole_coroutine_is_in()) {
+        FD_ZERO(&rfds);
+        FD_ZERO(&wfds);
+        FD_ZERO(&efds);
+    }
     while (result.running) {
         rc = zookeeper_interest(zh, &fd, &events, &tv);
         if (rc) {
@@ -72,6 +78,28 @@ static void zk_dispatch(Object &_this, zhandle_t *zh, QueryResult &result) {
             _this.set("errCode", rc);
             result.retval = false;
             return;
+        }
+        if (!swoole_coroutine_is_in()) {
+            if (events&ZOOKEEPER_READ) {
+                FD_SET(fd, &rfds);
+            } else {
+                FD_CLR(fd, &rfds);
+            }
+            if (events&ZOOKEEPER_WRITE) {
+                FD_SET(fd, &wfds);
+            } else {
+                FD_CLR(fd, &wfds);
+            }
+            rc = select(fd+1, &rfds, &wfds, &efds, &tv);
+            events = 0;
+            if (rc > 0) {
+                if (FD_ISSET(fd, &rfds)) {
+                    events |= ZOOKEEPER_READ;
+                }
+                if (FD_ISSET(fd, &wfds)) {
+                    events |= ZOOKEEPER_WRITE;
+                }
+            }
         }
         rc = zookeeper_process(zh, events);
         if (rc) {
