@@ -1,0 +1,43 @@
+name: Test
+
+on: [push, pull_request]
+
+jobs:
+  TestSwoole:
+    name: Linux PHP-${{ matrix.php }} Swoole-${{ matrix.swoole }} Zookeeper-${{ matrix.zookeeper }}
+    runs-on: ubuntu-20.04
+    strategy:
+      fail-fast: false
+      matrix:
+        php: ['7.2', '7.3', '7.4', '8.0', '8.1']
+        swoole: ['4.8']
+        zookeeper: ['3.8']
+        include:
+          - php: '8.1'
+            swoole: '4.8'
+            zookeeper: '3.7'
+          - php: '8.1'
+            swoole: '4.8'
+            zookeeper: '3.6'
+          - php: '8.1'
+            swoole: '4.8'
+            zookeeper: '3.5'
+          - php: '8.1'
+            swoole: '4.8'
+            zookeeper: '3.4'
+    env:
+      PHP_VERSION: ${{ matrix.php }}
+      SWOOLE_VERSION: ${{ matrix.swoole }}
+      ZOOKEEPER_VERSION: ${{ matrix.zookeeper }}
+      PHPX_VERSION: "fix-build"
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+      - name: Start docker
+        run: ./.github/start-docker.sh
+      - name: Install phpx
+        run: docker exec swoole ./.github/install-phpx.sh
+      - name: Build ext-zookeeper
+        run: docker exec swoole phpx build -v && docker exec swoole phpx install && docker exec swoole docker-php-ext-enable swoole_zookeeper && docker exec swoole php -m
+      - name: Test
+        run: docker exec swoole ./tests/start.sh

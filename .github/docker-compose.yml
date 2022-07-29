@@ -1,0 +1,57 @@
+version: '3.1'
+
+services:
+  zoo1:
+    container_name: zoo1
+    image: zookeeper:${ZOOKEEPER_VERSION}
+    restart: always
+    hostname: zoo1
+    ports:
+      - 2181:2181
+    environment:
+      ZOO_MY_ID: 1
+      ZOO_SERVERS: ${ZOO_SERVERS}
+
+  zoo2:
+    container_name: zoo2
+    image: zookeeper:${ZOOKEEPER_VERSION}
+    restart: always
+    hostname: zoo2
+    ports:
+      - 2182:2181
+    environment:
+      ZOO_MY_ID: 2
+      ZOO_SERVERS: ${ZOO_SERVERS}
+
+  zoo3:
+    container_name: zoo3
+    image: zookeeper:${ZOOKEEPER_VERSION}
+    restart: always
+    hostname: zoo3
+    ports:
+      - 2183:2181
+    environment:
+      ZOO_MY_ID: 3
+      ZOO_SERVERS: ${ZOO_SERVERS}
+
+  swoole:
+    container_name: swoole
+    restart: always
+    hostname: swoole
+    build:
+      context: .
+      dockerfile: swoole.dockerfile
+      args:
+        SWOOLE_VERSION: ${SWOOLE_VERSION}
+        PHP_VERSION: ${PHP_VERSION}
+    depends_on:
+      - zoo1
+      - zoo2
+      - zoo3
+    environment:
+      TEST_ZOOKEEPER_HOST: zoo1
+      PHPX_VERSION: ${PHPX_VERSION}
+    volumes:
+      - "${GITHUB_WORKSPACE}:/ext-zookeeper:rw"
+    working_dir: /ext-zookeeper
+    command: tail -f /dev/null
