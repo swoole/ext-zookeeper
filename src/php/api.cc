@@ -17,7 +17,7 @@ using namespace zookeeper;
 zhandle_t *handle = NULL;
 int connected = 0;
 int expired = 0;
-struct timeval startTime;
+static struct timeval startTime;
 
 const bool debug = false;
 
