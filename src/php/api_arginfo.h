@@ -1,9 +1,9 @@
 /* This is a generated file, edit the .stub.php file instead.
- * Stub hash: f37245c53cb2a4fa610bc1bb6ae53b00473e9c1b */
+ * Stub hash: 56040d2a8b5d20708833a323c853962b69a4b56f */
 
 ZEND_BEGIN_ARG_INFO_EX(arginfo_class_Swoole_ZooKeeper___construct, 0, 0, 2)
 	ZEND_ARG_TYPE_INFO(0, host, IS_STRING, 0)
-	ZEND_ARG_OBJ_INFO(0, timeout, Swoole\\double, 0)
+	ZEND_ARG_TYPE_INFO(0, timeout, IS_DOUBLE, 0)
 ZEND_END_ARG_INFO()
 
 ZEND_BEGIN_ARG_WITH_RETURN_TYPE_INFO_EX(arginfo_class_Swoole_ZooKeeper_create, 0, 2, _IS_BOOL, 0)
