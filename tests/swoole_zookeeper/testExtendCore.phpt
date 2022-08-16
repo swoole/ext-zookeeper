@@ -6,6 +6,8 @@ require __DIR__ . '/../inc/skipif.inc';
 ?>
 --FILE--
 <?php
+declare(strict_types=1);
+
 include_once __DIR__ . '/../inc/bootstrap.php';
 use swoole\zookeeper;
 
