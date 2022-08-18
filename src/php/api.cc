@@ -78,6 +78,8 @@ static void zk_dispatch(Object &_this, zhandle_t *zh, QueryResult &result) {
             _this.set("errCode", rc);
             result.retval = false;
             return;
+        } else if (0 == events) {
+            continue;
         }
         if (!swoole_coroutine_is_in()) {
             if (events&ZOOKEEPER_READ) {
