@@ -8,6 +8,7 @@ define('TEST_ZOOKEEPER_KEY', '/test_create_instance');
 define('TEST_ZOOKEEPER_PERSISTENT_KEY', '/test_key_persistent');
 define('TEST_ZOOKEEPER_INVALID_KEY', '/test_key_persistent/');
 define('TEST_ZOOKEEPER_NOT_EXISTS_KEY', '/test_key_not_exists');
+define('TEST_ZOOKEEPER_WATCH_KEY', '/test_watch');
 
 function test($callable)
 {

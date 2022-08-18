@@ -12,7 +12,7 @@ include_once __DIR__ . '/../inc/bootstrap.php';
 use swoole\zookeeper;
 
 
-test(function(){
+test(function() {
     try{
         zookeeper::setDebugLevel(1);
         $zk = new zookeeper(TEST_ZOOKEEPER_FULL_URL, TEST_ZOOKEEPER_TIMEOUT);

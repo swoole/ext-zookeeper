@@ -82,17 +82,17 @@ static void zk_dispatch(Object &_this, zhandle_t *zh, QueryResult &result) {
             continue;
         }
         if (!swoole_coroutine_is_in()) {
-            if (events&ZOOKEEPER_READ) {
+            if (events & ZOOKEEPER_READ) {
                 FD_SET(fd, &rfds);
             } else {
                 FD_CLR(fd, &rfds);
             }
-            if (events&ZOOKEEPER_WRITE) {
+            if (events & ZOOKEEPER_WRITE) {
                 FD_SET(fd, &wfds);
             } else {
                 FD_CLR(fd, &wfds);
             }
-            rc = select(fd+1, &rfds, &wfds, &efds, &tv);
+            rc = select(fd + 1, &rfds, &wfds, &efds, &tv);
             events = 0;
             if (rc > 0) {
                 if (FD_ISSET(fd, &rfds)) {
@@ -701,6 +701,12 @@ PHPX_METHOD(Swoole_ZooKeeper, wait) {
 
     int fd, rc, events = ZOOKEEPER_READ;
     struct timeval tv;
+    fd_set rfds, wfds, efds;
+    if (!swoole_coroutine_is_in()) {
+        FD_ZERO(&rfds);
+        FD_ZERO(&wfds);
+        FD_ZERO(&efds);
+    }
 
     while (true) {
         int rc = zookeeper_interest(zh, &fd, &events, &tv);
@@ -710,10 +716,37 @@ PHPX_METHOD(Swoole_ZooKeeper, wait) {
             result.retval = false;
             return;
         }
-        if (swoole_coroutine_socket_wait_event(fd, SW_EVENT_READ, (double) tv.tv_sec + (double) tv.tv_usec / 1000000) <
-            0) {
-            result.retval = false;
-            return;
+        if (swoole_coroutine_is_in()) {
+            if (swoole_coroutine_socket_wait_event(fd, SW_EVENT_READ, (double) tv.tv_sec + (double) tv.tv_usec / 1000000) <
+                0) {
+                result.retval = false;
+                return;
+            }
+        } else {
+            if (events & ZOOKEEPER_READ) {
+                FD_SET(fd, &rfds);
+            } else {
+                FD_CLR(fd, &rfds);
+            }
+            if (events & ZOOKEEPER_WRITE) {
+                FD_SET(fd, &wfds);
+            } else {
+                FD_CLR(fd, &wfds);
+            }
+            rc = select(fd + 1, &rfds, &wfds, &efds, &tv);
+            events = 0;
+            if (rc > 0) {
+                if (FD_ISSET(fd, &rfds)) {
+                    events |= ZOOKEEPER_READ;
+                }
+                if (FD_ISSET(fd, &wfds)) {
+                    events |= ZOOKEEPER_WRITE;
+                }
+            }
+            if (0 == events) {
+                result.retval = false;
+                return;
+            }
         }
         rc = zookeeper_process(zh, events);
         if (rc) {

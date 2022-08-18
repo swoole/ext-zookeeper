@@ -34,7 +34,7 @@ class ourZooClass extends zookeeper{
                 $this->create(TEST_ZOOKEEPER_PERSISTENT_KEY, "swoole");
             }
             echo $this->get(TEST_ZOOKEEPER_PERSISTENT_KEY), PHP_EOL;
-        } catch(Exception $e){
+        } catch(Exception $e) {
             var_dump($this);
         }
     }
