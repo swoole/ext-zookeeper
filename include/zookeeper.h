@@ -25,7 +25,7 @@
 #ifndef WIN32
 #include <sys/socket.h>
 #include "ext/swoole/include/swoole_socket_hook.h"
-#if SWOOLE_VERSION_ID < 40812
+#if SWOOLE_VERSION_ID < 40812 || SWOOLE_VERSION_ID < 50001
     #include <netdb.h>
     #define swoole_coroutine_getaddrinfo(name, service, req, pai) (swoole_coroutine_is_in() ? swoole_coroutine_getaddrinfo(name, service, req, pai) : getaddrinfo(name, service, req, pai))
     #define swoole_coroutine_gethostbyname(name) (swoole_coroutine_is_in() : swoole_coroutine_gethostbyname(name) : gethostbyname(name))
