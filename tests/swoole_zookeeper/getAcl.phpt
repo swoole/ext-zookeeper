@@ -1,5 +1,5 @@
 --TEST--
-swoole_zookeeper: test new instance
+swoole_zookeeper: test getAcl
 --SKIPIF--
 <?php 
 require __DIR__ . '/../inc/skipif.inc';

@@ -1,5 +1,5 @@
 --TEST--
-swoole_zookeeper: test new instance
+swoole_zookeeper: test ExtendCore
 --SKIPIF--
 <?php
 require __DIR__ . '/../inc/skipif.inc';
@@ -28,22 +28,24 @@ class ourZooClass extends zookeeper{
 
     public function run()
     {
-        test(function(){
-            try{
-                if (!$this->exists(TEST_ZOOKEEPER_PERSISTENT_KEY))
-                {
-                    $this->create(TEST_ZOOKEEPER_PERSISTENT_KEY, "swoole");
-                }
-                $this->get(TEST_ZOOKEEPER_PERSISTENT_KEY);
-            } catch(Exception $e){
-                var_dump($this);
+        try{
+            if (!$this->exists(TEST_ZOOKEEPER_PERSISTENT_KEY))
+            {
+                $this->create(TEST_ZOOKEEPER_PERSISTENT_KEY, "swoole");
             }
-        });
+            echo $this->get(TEST_ZOOKEEPER_PERSISTENT_KEY), PHP_EOL;
+        } catch(Exception $e){
+            var_dump($this);
+        }
     }
 }
 
 zookeeper::setDebugLevel(1);
-$class = new ourZooClass();
-$class->run();
+test(function() {
+    $class = new ourZooClass();
+    $class->run();
+});
 ?>
---EXPECT--
+--EXPECTF--
+swoole
+swoole
