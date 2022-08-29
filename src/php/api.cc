@@ -778,11 +778,18 @@ PHPX_EXTENSION() {
         c->addConstant("PERM_ADMIN", ZOO_PERM_ADMIN);
         c->addConstant("PERM_CREATE", ZOO_PERM_CREATE);
         c->addConstant("PERM_DELETE", ZOO_PERM_DELETE);
+        c->addConstant("LOG_LEVEL_ERROR", ZOO_LOG_LEVEL_ERROR);
+        c->addConstant("LOG_LEVEL_WARN", ZOO_LOG_LEVEL_WARN);
+        c->addConstant("LOG_LEVEL_INFO", ZOO_LOG_LEVEL_INFO);
+        c->addConstant("LOG_LEVEL_DEBUG", ZOO_LOG_LEVEL_DEBUG);
         c->alias("Swoole\\ZooKeeper");
 
         c->registerFunctions(class_Swoole_ZooKeeper_methods);
 
         ext->registerClass(c);
+
+        /* set debug level to warning by default */
+        zoo_set_debug_level(ZOO_LOG_LEVEL_WARN);
     };
 
     ext->require("swoole");
