@@ -1,5 +1,5 @@
 --TEST--
-swoole_zookeeper: test watch
+swoole_zookeeper: test watch2
 --SKIPIF--
 <?php 
 require __DIR__ . '/../inc/skipif.inc';
@@ -19,13 +19,17 @@ test(function() {
         $zk->create(TEST_ZOOKEEPER_WATCH_KEY, 'swoole');
     }
     $zk->watch(TEST_ZOOKEEPER_WATCH_KEY);
-    $watching = true;
-    $watchedKey = null;
-    $zk->setWatcher(function (zookeeper $zk, string $key) use (&$watching, &$watchedKey) {
-        $watchedKey = $key;
-        $watching = false;
+    $watching = 2;
+    $zk->setWatcher(function (zookeeper $zk, string $key) use (&$watching) {
+        var_dump($key);
+        if (--$watching) {
+            $zk->watch($key);
+            $zk->set(TEST_ZOOKEEPER_WATCH_KEY, (string) $watching);
+        }
     });
-    $zk->set(TEST_ZOOKEEPER_WATCH_KEY, 'watch');
+
+    $zk->set(TEST_ZOOKEEPER_WATCH_KEY, 'a');
+
     $time = microtime(true);
     while ($watching) {
         $zk->wait();
@@ -33,9 +37,10 @@ test(function() {
             exit('failed');
         }
     }
-    var_dump($watchedKey);
 });
 ?>
 --EXPECTF--
+string(11) "/test_watch"
+string(11) "/test_watch"
 string(11) "/test_watch"
 string(11) "/test_watch"

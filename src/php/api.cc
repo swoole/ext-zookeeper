@@ -115,11 +115,11 @@ static void zk_dispatch(Object &_this, zhandle_t *zh, QueryResult &result) {
 
 static void watch_func(zhandle_t *zh, int type, int state, const char *path, void *watcherCtx) {
     if (watcherCtx) {
-        Object *_this = (Object *) watcherCtx;
-        auto fn = _this->get("watcher");
+        Object _this((zval*) watcherCtx, true);
+        auto fn = _this.get("watcher");
         Args args;
         Variant key(path);
-        args.append(_this->ptr());
+        args.append(_this.ptr());
         args.append(key);
         call(fn, args);
     }
@@ -669,7 +669,7 @@ PHPX_METHOD(Swoole_ZooKeeper, watch) {
     if (!zh) {
         return;
     }
-    int rc = zoo_awget(zh, args[0].toCString(), watch_func, &_this, my_silent_data_completion, &result);
+    int rc = zoo_awget(zh, args[0].toCString(), watch_func, _this.ptr(), my_silent_data_completion, &result);
     if (rc) {
         retval = false;
     } else {
@@ -685,7 +685,7 @@ PHPX_METHOD(Swoole_ZooKeeper, watchChildren) {
         return;
     }
 
-    int rc = zoo_awget_children(zh, args[0].toCString(), watch_func, &_this, my_strings_completion, &result);
+    int rc = zoo_awget_children(zh, args[0].toCString(), watch_func, _this.ptr(), my_strings_completion, &result);
     if (rc) {
         retval = false;
     } else {
