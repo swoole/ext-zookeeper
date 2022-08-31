@@ -17,7 +17,7 @@ using namespace zookeeper;
 zhandle_t *handle = NULL;
 int connected = 0;
 int expired = 0;
-struct timeval startTime;
+static struct timeval startTime;
 
 const bool debug = false;
 
@@ -65,6 +65,12 @@ static void dump_stat(const struct Stat *stat) {
 static void zk_dispatch(Object &_this, zhandle_t *zh, QueryResult &result) {
     int fd, rc, events = ZOOKEEPER_READ;
     struct timeval tv;
+    fd_set rfds, wfds, efds;
+    if (!swoole_coroutine_is_in()) {
+        FD_ZERO(&rfds);
+        FD_ZERO(&wfds);
+        FD_ZERO(&efds);
+    }
     while (result.running) {
         rc = zookeeper_interest(zh, &fd, &events, &tv);
         if (rc) {
@@ -72,6 +78,30 @@ static void zk_dispatch(Object &_this, zhandle_t *zh, QueryResult &result) {
             _this.set("errCode", rc);
             result.retval = false;
             return;
+        } else if (0 == events) {
+            continue;
+        }
+        if (!swoole_coroutine_is_in()) {
+            if (events & ZOOKEEPER_READ) {
+                FD_SET(fd, &rfds);
+            } else {
+                FD_CLR(fd, &rfds);
+            }
+            if (events & ZOOKEEPER_WRITE) {
+                FD_SET(fd, &wfds);
+            } else {
+                FD_CLR(fd, &wfds);
+            }
+            rc = select(fd + 1, &rfds, &wfds, &efds, &tv);
+            events = 0;
+            if (rc > 0) {
+                if (FD_ISSET(fd, &rfds)) {
+                    events |= ZOOKEEPER_READ;
+                }
+                if (FD_ISSET(fd, &wfds)) {
+                    events |= ZOOKEEPER_WRITE;
+                }
+            }
         }
         rc = zookeeper_process(zh, events);
         if (rc) {
@@ -84,13 +114,15 @@ static void zk_dispatch(Object &_this, zhandle_t *zh, QueryResult &result) {
 }
 
 static void watch_func(zhandle_t *zh, int type, int state, const char *path, void *watcherCtx) {
-    Object *_this = (Object *) watcherCtx;
-    auto fn = _this->get("watcher");
-    Args args;
-    Variant key(path);
-    args.append(_this->ptr());
-    args.append(key);
-    call(fn, args);
+    if (watcherCtx) {
+        Object _this((zval*) watcherCtx, true);
+        auto fn = _this.get("watcher");
+        Args args;
+        Variant key(path);
+        args.append(_this.ptr());
+        args.append(key);
+        call(fn, args);
+    }
 }
 
 static void my_string_completion(int rc, const char *name, const void *data) {
@@ -637,7 +669,7 @@ PHPX_METHOD(Swoole_ZooKeeper, watch) {
     if (!zh) {
         return;
     }
-    int rc = zoo_awget(zh, args[0].toCString(), watch_func, &_this, my_silent_data_completion, &result);
+    int rc = zoo_awget(zh, args[0].toCString(), watch_func, _this.ptr(), my_silent_data_completion, &result);
     if (rc) {
         retval = false;
     } else {
@@ -653,7 +685,7 @@ PHPX_METHOD(Swoole_ZooKeeper, watchChildren) {
         return;
     }
 
-    int rc = zoo_awget_children(zh, args[0].toCString(), watch_func, &_this, my_strings_completion, &result);
+    int rc = zoo_awget_children(zh, args[0].toCString(), watch_func, _this.ptr(), my_strings_completion, &result);
     if (rc) {
         retval = false;
     } else {
@@ -671,6 +703,12 @@ PHPX_METHOD(Swoole_ZooKeeper, wait) {
 
     int fd, rc, events = ZOOKEEPER_READ;
     struct timeval tv;
+    fd_set rfds, wfds, efds;
+    if (!swoole_coroutine_is_in()) {
+        FD_ZERO(&rfds);
+        FD_ZERO(&wfds);
+        FD_ZERO(&efds);
+    }
 
     while (true) {
         int rc = zookeeper_interest(zh, &fd, &events, &tv);
@@ -680,10 +718,37 @@ PHPX_METHOD(Swoole_ZooKeeper, wait) {
             result.retval = false;
             return;
         }
-        if (swoole_coroutine_socket_wait_event(fd, SW_EVENT_READ, (double) tv.tv_sec + (double) tv.tv_usec / 1000000) <
-            0) {
-            result.retval = false;
-            return;
+        if (swoole_coroutine_is_in()) {
+            if (swoole_coroutine_socket_wait_event(fd, SW_EVENT_READ, (double) tv.tv_sec + (double) tv.tv_usec / 1000000) <
+                0) {
+                result.retval = false;
+                return;
+            }
+        } else {
+            if (events & ZOOKEEPER_READ) {
+                FD_SET(fd, &rfds);
+            } else {
+                FD_CLR(fd, &rfds);
+            }
+            if (events & ZOOKEEPER_WRITE) {
+                FD_SET(fd, &wfds);
+            } else {
+                FD_CLR(fd, &wfds);
+            }
+            rc = select(fd + 1, &rfds, &wfds, &efds, &tv);
+            events = 0;
+            if (rc > 0) {
+                if (FD_ISSET(fd, &rfds)) {
+                    events |= ZOOKEEPER_READ;
+                }
+                if (FD_ISSET(fd, &wfds)) {
+                    events |= ZOOKEEPER_WRITE;
+                }
+            }
+            if (0 == events) {
+                result.retval = false;
+                return;
+            }
         }
         rc = zookeeper_process(zh, events);
         if (rc) {
@@ -715,11 +780,18 @@ PHPX_EXTENSION() {
         c->addConstant("PERM_ADMIN", ZOO_PERM_ADMIN);
         c->addConstant("PERM_CREATE", ZOO_PERM_CREATE);
         c->addConstant("PERM_DELETE", ZOO_PERM_DELETE);
+        c->addConstant("LOG_LEVEL_ERROR", ZOO_LOG_LEVEL_ERROR);
+        c->addConstant("LOG_LEVEL_WARN", ZOO_LOG_LEVEL_WARN);
+        c->addConstant("LOG_LEVEL_INFO", ZOO_LOG_LEVEL_INFO);
+        c->addConstant("LOG_LEVEL_DEBUG", ZOO_LOG_LEVEL_DEBUG);
         c->alias("Swoole\\ZooKeeper");
 
         c->registerFunctions(class_Swoole_ZooKeeper_methods);
 
         ext->registerClass(c);
+
+        /* set debug level to warning by default */
+        zoo_set_debug_level(ZOO_LOG_LEVEL_WARN);
     };
 
     ext->require("swoole");

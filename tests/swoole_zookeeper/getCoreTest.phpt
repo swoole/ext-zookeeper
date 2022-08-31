@@ -1,16 +1,18 @@
 --TEST--
-swoole_zookeeper: test new instance
+swoole_zookeeper: test getCore
 --SKIPIF--
 <?php
 require __DIR__ . '/../inc/skipif.inc';
 ?>
 --FILE--
 <?php
+declare(strict_types=1);
+
 include_once __DIR__ . '/../inc/bootstrap.php';
 use swoole\zookeeper;
 
 
-go(function(){
+test(function() {
     try{
         zookeeper::setDebugLevel(1);
         $zk = new zookeeper(TEST_ZOOKEEPER_FULL_URL, TEST_ZOOKEEPER_TIMEOUT);
@@ -28,7 +30,8 @@ go(function(){
       var_dump($zk);
     }
 });
-
-Swoole\Event::wait();
-
 ?>
+--EXPECT--
+string(6) "swoole"
+string(6) "swoole"
+

@@ -6,6 +6,8 @@ require __DIR__ . '/../inc/skipif.inc';
 ?>
 --FILE--
 <?php
+declare(strict_types=1);
+
 echo true;
 ?>
 --EXPECT--

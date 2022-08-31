@@ -7,7 +7,7 @@ namespace Swoole {
 
     class ZooKeeper
     {
-        public function __construct(string $host, double $timeout)
+        public function __construct(string $host, float $timeout)
         {
         }
 

@@ -1,18 +1,20 @@
 --TEST--
-swoole_zookeeper: test new instance
+swoole_zookeeper: test getChildren
 --SKIPIF--
 <?php 
 require __DIR__ . '/../inc/skipif.inc';
 ?>
 --FILE--
 <?php
+declare(strict_types=1);
+
 require __DIR__ . '/../inc/bootstrap.php';
 
 use swoole\zookeeper;
 
 const KEY = "/test_dir";
 
-go(function () {
+test(function () {
     zookeeper::setDebugLevel(1);
     $zk = new zookeeper(TEST_ZOOKEEPER_FULL_URL, TEST_ZOOKEEPER_TIMEOUT);
     if (!$zk->exists(KEY) && $zk->errCode === -101) // key 不存在
@@ -25,6 +27,14 @@ go(function () {
 });
 ?>
 --EXPECT--
+string(11) "/test_dir/a"
+string(11) "/test_dir/b"
+array(2) {
+  [0]=>
+  string(1) "a"
+  [1]=>
+  string(1) "b"
+}
 string(11) "/test_dir/a"
 string(11) "/test_dir/b"
 array(2) {

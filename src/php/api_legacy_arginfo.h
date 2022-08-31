@@ -1,5 +1,5 @@
 /* This is a generated file, edit the .stub.php file instead.
- * Stub hash: f37245c53cb2a4fa610bc1bb6ae53b00473e9c1b */
+ * Stub hash: 56040d2a8b5d20708833a323c853962b69a4b56f */
 
 ZEND_BEGIN_ARG_INFO_EX(arginfo_class_Swoole_ZooKeeper___construct, 0, 0, 2)
 	ZEND_ARG_INFO(0, host)
