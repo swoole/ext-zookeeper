@@ -46,59 +46,22 @@ void convert_acl_to_array(Array *destArray, struct ACL_vector *acl) {
     }
 }
 
-//// 把一个数组转化为acl结构体,由于接口对外需要严格检查数据结构
-bool convert_array_to_acl(Array *param_array, struct ACL_vector *zookeeper_acl) {
-    Variant tmp_unit_check;
-    //初始化结构体
-    zookeeper_acl->count = (int32_t) param_array->count();
-
-    struct ACL zookeeper_acl_unit[zookeeper_acl->count];
-
-    for (int i = 0; i < zookeeper_acl->count; i++) {
-        struct Id acl_unit;
-        tmp_unit_check = param_array->get(i);
-        //检查索引防止用户填写错误
-        if (tmp_unit_check == nullptr) {
-            error(E_WARNING, "setAcl:get index error");
-            return false;
-        }
-        Array acl_unit_array(tmp_unit_check);
-
-        //检查索引防止用户填写错误
-        if (tmp_unit_check == nullptr) {
-            error(E_WARNING, "setAcl:get id error");
-            return false;
-        }
-
-        tmp_unit_check = acl_unit_array.get("id");
-        Array acl_unit_array_id(tmp_unit_check);
-        zookeeper_acl_unit[i].perms = (int32_t) acl_unit_array.get("perms").toInt();
-        auto id = acl_unit_array_id.get("id").toStdString();
-        acl_unit.id = estrndup(id.c_str(), id.length());
-        auto scheme = acl_unit_array_id.get("scheme").toStdString();
-        acl_unit.scheme = estrndup(scheme.c_str(), scheme.length());
-        zookeeper_acl_unit[i].id = acl_unit;
-    }
-    zookeeper_acl->data = zookeeper_acl_unit;
-    return zookeeper_acl;
-}
-
-//把一个数组转化为acl结构体
+// 把一个数组转化为acl结构体
 struct ACL_vector *convert_array_to_acl(Array *param_array) {
     struct ACL_vector *acl_vector;
     struct ACL *create_acl;
     struct ACL *acl_collect;
-    //初始化结构体
+    // 初始化结构体
     Array zk_array(*param_array);
     acl_vector = (struct ACL_vector *) emalloc(sizeof(struct ACL_vector));
 
-    //初始化这个结构体
+    // 初始化这个结构体
     bzero(acl_vector, sizeof(struct ACL_vector));
 
-    //设置这个架构体里acl的数量
+    // 设置这个架构体里acl的数量
     acl_vector->count = (int32_t) zk_array.count();
 
-    //申请一块连续的内存空间
+    // 申请一块连续的内存空间
     acl_collect = (struct ACL *) emalloc(acl_vector->count * sizeof(struct ACL));
     if (acl_collect == nullptr) {
         return nullptr;
@@ -146,7 +109,7 @@ struct ACL_vector *convert_array_to_acl(Array *param_array) {
         std::string std_acl_struct_id = acl_struct_id.toStdString();
         create_acl.id.id = estrndup(std_acl_struct_id.c_str(), std_acl_struct_id.length());
 
-        //将结构体装入ACL
+        // 将结构体装入ACL
         acl_collect[i] = create_acl;
     }
     acl_vector->data = acl_collect;
@@ -157,9 +120,9 @@ struct ACL_vector *convert_array_to_acl(Array *param_array) {
 bool free_acl_struct(struct ACL_vector *acl_vector) {
     if (acl_vector && acl_vector->data) {
         for (int i = 0; i < acl_vector->count; i++) {
-            efree(const_cast<char *>((acl_vector->data + i)->id.id));
-            efree(const_cast<char *>((acl_vector->data + i)->id.scheme));
-            efree((acl_vector->data + i));
+            Id id = acl_vector->data[i].id;
+            efree(id.id);
+            efree(id.scheme);
         }
         efree(acl_vector->data);
         efree(acl_vector);
