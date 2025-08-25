@@ -135,10 +135,7 @@ struct ACL_vector *convert_array_to_acl(Array *param_array) {
             return nullptr;
         }
         std::string std_scheme = scheme.toStdString();
-        char *scheme_buf = (char *) emalloc(std_scheme.length() + 1);
-        bzero(scheme_buf, strlen(scheme_buf) + 1);
-        strcpy(scheme_buf, std_scheme.c_str());
-        create_acl.id.scheme = scheme_buf;
+        create_acl.id.scheme = estrndup(std_scheme.c_str(), std_scheme.length());
         Variant acl_struct_id = acl_array.get("id");
         if (scheme == nullptr) {
             return nullptr;
@@ -147,10 +144,7 @@ struct ACL_vector *convert_array_to_acl(Array *param_array) {
             return nullptr;
         }
         std::string std_acl_struct_id = acl_struct_id.toStdString();
-        char *acl_struct_id_buf = (char *) emalloc(std_acl_struct_id.length() + 1);
-        bzero(acl_struct_id_buf, (std_acl_struct_id.length()) + 1);
-        strcpy(acl_struct_id_buf, std_acl_struct_id.c_str());
-        create_acl.id.id = acl_struct_id_buf;
+        create_acl.id.id = estrndup(std_acl_struct_id.c_str(), std_acl_struct_id.length());
 
         //将结构体装入ACL
         acl_collect[i] = create_acl;
