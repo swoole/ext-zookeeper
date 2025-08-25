@@ -25,9 +25,7 @@ void convert_stat_to_array(Array *destArray, const Stat *stat) {
 }
 
 /**
- * 将acl赋值到数组
- * @param destArray
- * @param acl
+ * 将 acl 赋值到数组
  */
 void convert_acl_to_array(Array *destArray, ACL_vector *acl) {
     Array aclArray;
@@ -35,16 +33,16 @@ void convert_acl_to_array(Array *destArray, ACL_vector *acl) {
     for (int i = 0; i < acl->count; i++) {
         Array aclSaveArray;
         Array idArray;
-        ACL *acl_unit = acl->data + i;
-        aclSaveArray.set("perms", acl_unit->perms);
-        idArray.set("id", acl_unit->id.id);
-        idArray.set("scheme", acl_unit->id.scheme);
+        ACL &acl_unit = acl->data[i];
+        aclSaveArray.set("perms", acl_unit.perms);
+        idArray.set("id", acl_unit.id.id);
+        idArray.set("scheme", acl_unit.id.scheme);
         aclSaveArray.set("id", idArray);
         aclArray.set(i, aclSaveArray);
     }
 }
 
-// 把一个数组转化为acl结构体
+// 把一个数组转化为 acl 结构体
 ACL_vector *convert_array_to_acl(Array *param_array) {
     ACL_vector *acl_vector;
     ACL *acl_collect;
