@@ -3,13 +3,11 @@
 #include <cstring>
 
 #include "phpx.h"
-#include "php_streams.h"
 #include "ext/swoole/include/swoole_api.h"
 #include "ext/swoole/include/swoole_coroutine_c_api.h"
 #include "zookeeper.h"
 #include "zklib.h"
-#include "api_x_arginfo.h"
-#include "../../vendor/swoole/phpx/include/phpx.h"
+#include "api_arginfo.h"
 
 #define EXT_NAME "swoole_zookeeper"
 
@@ -20,9 +18,9 @@ using namespace zookeeper;
 zhandle_t *handle = nullptr;
 int connected = 0;
 int expired = 0;
-static struct timeval startTime;
+static timeval startTime;
 
-const bool debug = false;
+constexpr bool debug = false;
 
 struct QueryResult {
     QueryResult() : retval(nullptr) {
@@ -35,7 +33,7 @@ struct QueryResult {
     Variant retval;
 };
 
-static void dump_stat(const struct Stat *stat) {
+static void dump_stat(const Stat *stat) {
     char tctimes[40];
     char tmtimes[40];
     time_t tctime;
@@ -65,9 +63,9 @@ static void dump_stat(const struct Stat *stat) {
             stat->ephemeralOwner);
 }
 
-static void zk_dispatch(Object &_this, zhandle_t *zh, QueryResult &result) {
+static void zk_dispatch(const Object &_this, zhandle_t *zh, QueryResult &result) {
     int fd, rc, events = ZOOKEEPER_READ;
-    struct timeval tv;
+    timeval tv{};
     fd_set rfds, wfds, efds;
     if (!swoole_coroutine_is_in()) {
         FD_ZERO(&rfds);
@@ -146,14 +144,12 @@ static void my_string_completion_free_data(int rc, const char *name, const void 
     my_string_completion(rc, name, data);
 }
 
-void my_data_completion(int rc, const char *value, int value_len, const struct Stat *stat, const void *data) {
-    struct timeval tv;
-    int sec;
-    int usec;
-    gettimeofday(&tv, 0);
-    sec = tv.tv_sec - startTime.tv_sec;
-    usec = tv.tv_usec - startTime.tv_usec;
-    fprintf(stderr, "time = %d msec\n", sec * 1000 + usec / 1000);
+void my_data_completion(int rc, const char *value, int value_len, const Stat *stat, const void *data) {
+    timeval tv{};
+    gettimeofday(&tv, nullptr);
+    const long sec = tv.tv_sec - startTime.tv_sec;
+    const long usec = tv.tv_usec - startTime.tv_usec;
+    fprintf(stderr, "time = %ld msec\n", sec * 1000 + usec / 1000);
     fprintf(stderr, "%s: rc = %d\n", (char *) data, rc);
     if (value) {
         fprintf(stderr, " value_len = %d\n", value_len);
@@ -163,8 +159,8 @@ void my_data_completion(int rc, const char *value, int value_len, const struct S
     free((void *) data);
 }
 
-void my_silent_data_completion(int rc, const char *value, int value_len, const struct Stat *stat, const void *data) {
-    QueryResult *result = (QueryResult *) data;
+void my_silent_data_completion(int rc, const char *value, int value_len, const Stat *stat, const void *data) {
+    auto *result = (QueryResult *) data;
     result->error = rc;
     if (rc == ZOK) {
         result->retval = Variant(value, value_len);
@@ -174,14 +170,13 @@ void my_silent_data_completion(int rc, const char *value, int value_len, const s
     result->running = false;
 }
 
-void my_strings_completion(int rc, const struct String_vector *strings, const void *data) {
-    QueryResult *result = (QueryResult *) data;
+void my_strings_completion(int rc, const String_vector *strings, const void *data) {
+    auto *result = (QueryResult *) data;
     result->error = rc;
     if (rc == ZOK) {
         Array array;
         if (strings) {
-            int i;
-            for (i = 0; i < strings->count; i++) {
+            for (int i = 0; i < strings->count; i++) {
                 array.append(strings->data[i]);
             }
         }
@@ -193,16 +188,13 @@ void my_strings_completion(int rc, const struct String_vector *strings, const vo
     result->running = false;
 }
 
-void my_strings_stat_completion(int rc,
-                                const struct String_vector *strings,
-                                const struct Stat *stat,
-                                const void *data) {
+void my_strings_stat_completion(int rc, const String_vector *strings, const Stat *stat, const void *data) {
     my_strings_completion(rc, strings, data);
     dump_stat(stat);
 }
 
 void my_void_completion(int rc, const void *data) {
-    QueryResult *result = (QueryResult *) data;
+    auto *result = (QueryResult *) data;
     result->error = rc;
     if (rc == ZOK) {
         result->retval = true;
@@ -212,13 +204,13 @@ void my_void_completion(int rc, const void *data) {
     result->running = false;
 }
 
-void my_stat_completion(int rc, const struct Stat *stat, const void *data) {
+void my_stat_completion(int rc, const Stat *stat, const void *data) {
     if (debug) {
         std::printf("my_stat_completion rc=%d\n", rc);
         dump_stat(stat);
     }
 
-    QueryResult *result = (QueryResult *) data;
+    auto *result = (QueryResult *) data;
     result->error = rc;
     if (rc == ZOK) {
         result->retval = true;
@@ -228,8 +220,8 @@ void my_stat_completion(int rc, const struct Stat *stat, const void *data) {
     result->running = false;
 }
 
-void my_silent_stat_completion(int rc, const struct Stat *stat, const void *data) {
-    QueryResult *result = (QueryResult *) data;
+void my_silent_stat_completion(int rc, const Stat *stat, const void *data) {
+    auto *result = (QueryResult *) data;
     result->error = rc;
     if (rc == ZOK) {
         result->retval = true;
@@ -239,14 +231,14 @@ void my_silent_stat_completion(int rc, const struct Stat *stat, const void *data
     result->running = false;
 }
 
-void my_acl_stat_completion(int rc, struct ACL_vector *acl, struct Stat *stat, const void *data) {
-    QueryResult *result = (QueryResult *) data;
+void my_acl_stat_completion(int rc, ACL_vector *acl, Stat *stat, const void *data) {
+    auto *result = (QueryResult *) data;
     result->error = rc;
     if (rc == ZOK) {
         Array res;
-        //把acl转化到数组
+        // 把acl转化到数组
         convert_acl_to_array(&res, acl);
-        //把stat转化到数组
+        // 把stat转化到数组
         convert_stat_to_array(&res, stat);
         result->retval = res;
     } else {
@@ -256,7 +248,7 @@ void my_acl_stat_completion(int rc, struct ACL_vector *acl, struct Stat *stat, c
 }
 
 void my_set_acl_completion(int rc, const void *data) {
-    QueryResult *result = (QueryResult *) data;
+    auto *result = (QueryResult *) data;
     result->error = rc;
     if (rc == ZOK) {
         result->retval = true;
@@ -268,13 +260,12 @@ void my_set_acl_completion(int rc, const void *data) {
 
 /**
  * C acl信息转换为php数组信息
- * 参考https://github.com/andreiz/php-zookeeper/blob/master/php_zookeeper.c#L922
+ * 参考 https://github.com/andreiz/php-zookeeper/blob/master/php_zookeeper.c#L922
  * @param aclv
  * @param array
  */
-static void php_aclv_to_array(const struct ACL_vector *aclv, Array &array) {
-    int i;
-    for (i = 0; i < aclv->count; i++) {
+static void php_aclv_to_array(const ACL_vector *aclv, Array &array) {
+    for (int i = 0; i < aclv->count; i++) {
         Array temp;
         temp.set("perms", aclv->data[i].perms);
         temp.set("scheme", aclv->data[i].id.scheme);
@@ -288,7 +279,7 @@ static void php_aclv_to_array(const struct ACL_vector *aclv, Array &array) {
  * @param stat
  * @param array
  */
-static void php_stat_to_array(const struct Stat *stat, Array &array) {
+static void php_stat_to_array(const Stat *stat, Array &array) {
     array.clean();
     array.set("czxid", (long) stat->czxid);
     array.set("mzxid", (long) stat->mzxid);
@@ -310,8 +301,8 @@ static void php_stat_to_array(const struct Stat *stat, Array &array) {
  * @param stat
  * @param data
  */
-void my_acl_completion(int rc, struct ACL_vector *acl, struct Stat *stat, const void *data) {
-    QueryResult *result = (QueryResult *) data;
+void my_acl_completion(int rc, ACL_vector *acl, Stat *stat, const void *data) {
+    auto *result = (QueryResult *) data;
     result->error = rc;
     if (rc == ZOK) {
         Array _array(result->retval);
@@ -334,7 +325,7 @@ void my_acl_completion(int rc, struct ACL_vector *acl, struct Stat *stat, const 
 static inline zhandle_t *get_class_handle(Object &_this) {
     auto zh = _this.oGet<zhandle_t>("handle", "zhandle_t");
     if (zh == nullptr) {
-        zend_throw_exception_ex(NULL, 0, "Could not get zookeeper handle");
+        zend_throw_exception_ex(nullptr, 0, "Could not get zookeeper handle");
         return nullptr;
     } else {
         return zh;
@@ -343,14 +334,14 @@ static inline zhandle_t *get_class_handle(Object &_this) {
 
 PHPX_METHOD(Swoole_ZooKeeper, __construct) {
     auto host = args[0];
-    double recv_timeout = args[1].toInt();
+    double recv_timeout = args[1].toFloat();
     int recv_timeout_ms = recv_timeout * 1000;
     zoo_deterministic_conn_order(1);
 
-    zhandle_t *zh = zookeeper_init(host.toCString(), nullptr, recv_timeout_ms, 0, NULL, 0);
+    zhandle_t *zh = zookeeper_init(host.toCString(), nullptr, recv_timeout_ms, nullptr, nullptr, 0);
     if (!zh) {
         zend_throw_exception(nullptr, "connect zookeeper of server failed", 0);
-        _this.oSet<zhandle_t>("handle", "zhandle_t", NULL);
+        _this.oSet<zhandle_t>("handle", "zhandle_t", nullptr);
     } else {
         _this.oSet<zhandle_t>("handle", "zhandle_t", zh);
     }
@@ -540,15 +531,14 @@ PHPX_METHOD(Swoole_ZooKeeper, getState) {
 }
 
 PHPX_METHOD(Swoole_ZooKeeper, getClientId) {
-    const clientid_t *cid;
     zhandle_t *zh = get_class_handle(_this);
     if (!zh) {
         return nullptr;
     }
-    cid = zoo_client_id(zh);
-    Array rv = Array();
-    rv.append((long) cid->client_id);
-    rv.append((char *) cid->passwd);
+    const clientid_t *cid = zoo_client_id(zh);
+    Array rv;
+    rv.append(cid->client_id);
+    rv.append(cid->passwd);
     return rv;
 }
 
@@ -577,7 +567,7 @@ PHPX_METHOD(Swoole_ZooKeeper, setLogStream) {
     z_stream = args[0].ptr();
 
     stream = (php_stream *) zend_fetch_resource(Z_RES_P(z_stream), "stream", Z_RES_P(z_stream)->type);
-    if (NULL == stream) {
+    if (nullptr == stream) {
         goto _return_null;
     }
 
@@ -615,7 +605,7 @@ void zookeeper_dtor(zend_resource *res) {
 }
 
 PHPX_METHOD(Swoole_ZooKeeper, setAcl) {
-    struct ACL_vector *zookeeper_acl;
+    ACL_vector *zookeeper_acl;
     QueryResult result;
     long version = -1;
     // 至少有一个参数
@@ -703,14 +693,13 @@ PHPX_METHOD(Swoole_ZooKeeper, watchChildren) {
 
 PHPX_METHOD(Swoole_ZooKeeper, wait) {
     zhandle_t *zh = get_class_handle(_this);
-    QueryResult result;
 
     if (!zh) {
         return nullptr;
     }
 
-    int fd, rc, events = ZOOKEEPER_READ;
-    struct timeval tv;
+    int fd, events = ZOOKEEPER_READ;
+    timeval tv{};
     fd_set rfds, wfds, efds;
     if (!swoole_coroutine_is_in()) {
         FD_ZERO(&rfds);
@@ -719,6 +708,7 @@ PHPX_METHOD(Swoole_ZooKeeper, wait) {
     }
 
     while (true) {
+        QueryResult result;
         int rc = zookeeper_interest(zh, &fd, &events, &tv);
         if (rc) {
         _error:
