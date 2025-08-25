@@ -1,6 +1,6 @@
-#include <assert.h>
+#include <cassert>
 #include <iostream>
-#include <string.h>
+#include <cstring>
 
 #include "phpx.h"
 #include "php_streams.h"
@@ -9,12 +9,15 @@
 #include "zookeeper.h"
 #include "zklib.h"
 #include "api_x_arginfo.h"
+#include "../../vendor/swoole/phpx/include/phpx.h"
+
+#define EXT_NAME "swoole_zookeeper"
 
 using namespace php;
 using namespace std;
 using namespace zookeeper;
 
-zhandle_t *handle = NULL;
+zhandle_t *handle = nullptr;
 int connected = 0;
 int expired = 0;
 static struct timeval startTime;
@@ -115,18 +118,17 @@ static void zk_dispatch(Object &_this, zhandle_t *zh, QueryResult &result) {
 
 static void watch_func(zhandle_t *zh, int type, int state, const char *path, void *watcherCtx) {
     if (watcherCtx) {
-        Object _this((zval*) watcherCtx, true);
+        Object _this((zval *) watcherCtx);
         auto fn = _this.get("watcher");
         Args args;
-        Variant key(path);
-        args.append(_this.ptr());
-        args.append(key);
+        args.append(_this);
+        args.append(path);
         call(fn, args);
     }
 }
 
 static void my_string_completion(int rc, const char *name, const void *data) {
-    QueryResult *result = (QueryResult *) data;
+    auto *result = (QueryResult *) data;
     result->error = rc;
     if (rc == ZOK) {
         if (name == nullptr) {
@@ -212,7 +214,7 @@ void my_void_completion(int rc, const void *data) {
 
 void my_stat_completion(int rc, const struct Stat *stat, const void *data) {
     if (debug) {
-        printf("my_stat_completion rc=%d\n", rc);
+        std::printf("my_stat_completion rc=%d\n", rc);
         dump_stat(stat);
     }
 
@@ -347,26 +349,27 @@ PHPX_METHOD(Swoole_ZooKeeper, __construct) {
 
     zhandle_t *zh = zookeeper_init(host.toCString(), nullptr, recv_timeout_ms, 0, NULL, 0);
     if (!zh) {
-        zend_throw_exception(NULL, "connect zookeeper of server failed", 0);
+        zend_throw_exception(nullptr, "connect zookeeper of server failed", 0);
         _this.oSet<zhandle_t>("handle", "zhandle_t", NULL);
     } else {
         _this.oSet<zhandle_t>("handle", "zhandle_t", zh);
     }
+    return nullptr;
 }
 
 PHPX_METHOD(Swoole_ZooKeeper, get) {
     zhandle_t *zh = get_class_handle(_this);
     if (!zh) {
-        return;
+        return nullptr;
     }
     QueryResult result;
     int rc = zoo_aget(zh, args[0].toCString(), 0, my_silent_data_completion, &result);
     if (rc) {
-        retval = false;
         _this.set("errCode", rc);
+        return false;
     } else {
         zk_dispatch(_this, zh, result);
-        retval = result.retval;
+        return result.retval;
     }
 }
 
@@ -375,20 +378,20 @@ PHPX_METHOD(Swoole_ZooKeeper, addAuth) {
     QueryResult result;
 
     if (!zh) {
-        return;
+        return nullptr;
     }
 
     if (args.count() > 2) {
-        return;
+        return nullptr;
     }
 
     int rc = zoo_add_auth(zh, args[0].toCString(), args[1].toCString(), args[1].length(), my_void_completion, &result);
     if (rc) {
-        retval = false;
         _this.set("errCode", rc);
+        return false;
     } else {
         zk_dispatch(_this, zh, result);
-        retval = result.retval;
+        return result.retval;
     }
 }
 
@@ -397,16 +400,16 @@ PHPX_METHOD(Swoole_ZooKeeper, getAcl) {
     QueryResult result;
 
     if (!zh) {
-        return;
+        return nullptr;
     }
 
     int rc = zoo_aget_acl(zh, args[0].toCString(), my_acl_completion, &result);
     if (rc) {
-        retval = false;
         _this.set("errCode", rc);
+        return false;
     } else {
         zk_dispatch(_this, zh, result);
-        retval = result.retval;
+        return result.retval;
     }
 }
 
@@ -415,16 +418,16 @@ PHPX_METHOD(Swoole_ZooKeeper, exists) {
     QueryResult result;
 
     if (!zh) {
-        return;
+        return nullptr;
     }
 
     int rc = zoo_aexists(zh, args[0].toCString(), 0, my_stat_completion, &result);
     if (rc) {
-        retval = false;
         _this.set("errCode", rc);
+        return false;
     } else {
         zk_dispatch(_this, zh, result);
-        retval = result.retval;
+        return result.retval;
     }
 }
 
@@ -433,7 +436,7 @@ PHPX_METHOD(Swoole_ZooKeeper, create) {
     QueryResult result;
 
     if (!zh) {
-        return;
+        return nullptr;
     }
 
     long flags = args.count() >= 3 ? args[2].toInt() : 0;
@@ -446,11 +449,11 @@ PHPX_METHOD(Swoole_ZooKeeper, create) {
                          my_string_completion_free_data,
                          &result);
     if (rc) {
-        retval = false;
         _this.set("errCode", rc);
+        return false;
     } else {
         zk_dispatch(_this, zh, result);
-        retval = result.retval;
+        return result.retval;
     }
 }
 
@@ -463,7 +466,7 @@ PHPX_METHOD(Swoole_ZooKeeper, set) {
     }
 
     if (!zh) {
-        return;
+        return nullptr;
     }
     int rc = zoo_aset(zh,
                       args[0].toCString(),
@@ -474,11 +477,11 @@ PHPX_METHOD(Swoole_ZooKeeper, set) {
                       &result);
 
     if (rc) {
-        retval = false;
         _this.set("errCode", rc);
+        return false;
     } else {
         zk_dispatch(_this, zh, result);
-        retval = result.retval;
+        return result.retval;
     }
 }
 
@@ -488,7 +491,7 @@ PHPX_METHOD(Swoole_ZooKeeper, delete) {
     long version = -1;
 
     if (!zh) {
-        return;
+        return nullptr;
     }
 
     if (args.count() > 1) {
@@ -497,11 +500,11 @@ PHPX_METHOD(Swoole_ZooKeeper, delete) {
 
     int rc = zoo_adelete(zh, args[0].toCString(), (int) version, my_void_completion, &result);
     if (rc) {
-        retval = false;
         _this.set("errCode", rc);
+        return false;
     } else {
         zk_dispatch(_this, zh, result);
-        retval = result.retval;
+        return result.retval;
     }
 }
 
@@ -509,48 +512,50 @@ PHPX_METHOD(Swoole_ZooKeeper, getChildren) {
     QueryResult result;
     zhandle_t *zh = get_class_handle(_this);
     if (!zh) {
-        return;
+        return nullptr;
     }
 
     int rc = zoo_aget_children(zh, args[0].toCString(), 0, my_strings_completion, &result);
     if (rc) {
-        retval = false;
         _this.set("errCode", rc);
+        return false;
     } else {
         zk_dispatch(_this, zh, result);
-        retval = result.retval;
+        return result.retval;
     }
 }
 
 PHPX_METHOD(Swoole_ZooKeeper, setDebugLevel) {
     long level = args[0].toInt();
     zoo_set_debug_level((ZooLogLevel) level);
+    return nullptr;
 }
 
 PHPX_METHOD(Swoole_ZooKeeper, getState) {
     zhandle_t *zh = get_class_handle(_this);
     if (!zh) {
-        return;
+        return nullptr;
     }
-    retval = zoo_state(zh);
+    return zoo_state(zh);
 }
 
 PHPX_METHOD(Swoole_ZooKeeper, getClientId) {
     const clientid_t *cid;
     zhandle_t *zh = get_class_handle(_this);
     if (!zh) {
-        return;
+        return nullptr;
     }
     cid = zoo_client_id(zh);
     Array rv = Array();
     rv.append((long) cid->client_id);
     rv.append((char *) cid->passwd);
-    retval = rv;
+    return rv;
 }
 
 PHPX_METHOD(Swoole_ZooKeeper, setDeterministicConnOrder) {
     bool value = args[0].toBool();
     zoo_deterministic_conn_order(value);
+    return nullptr;
 }
 
 PHPX_METHOD(Swoole_ZooKeeper, setLogStream) {
@@ -560,7 +565,7 @@ PHPX_METHOD(Swoole_ZooKeeper, setLogStream) {
 
     if (!args.count()) {
     _return_null:
-        return;
+        return nullptr;
     }
 
     if (!args[0].isResource()) {
@@ -581,12 +586,13 @@ PHPX_METHOD(Swoole_ZooKeeper, setLogStream) {
     }
 
     zoo_set_log_stream(fp);
+    return nullptr;
 }
 
 PHPX_METHOD(Swoole_ZooKeeper, setWatcher) {
     if (args.count() == 0) {
     _return_null:
-        return;
+        return nullptr;
     }
     if (!args[0].isCallable()) {
         error(E_WARNING, "expects parameter 1 to be callable");
@@ -594,14 +600,15 @@ PHPX_METHOD(Swoole_ZooKeeper, setWatcher) {
     }
     zhandle_t *zh = get_class_handle(_this);
     if (!zh) {
-        return;
+        return nullptr;
     }
     _this.set("watcher", args[0]);
     zoo_set_watcher(zh, watch_func);
+    return nullptr;
 }
 
 void zookeeper_dtor(zend_resource *res) {
-    zhandle_t *zh = static_cast<zhandle_t *>(res->ptr);
+    auto *zh = static_cast<zhandle_t *>(res->ptr);
     if (zh != nullptr) {
         zookeeper_close(zh);
     }
@@ -611,21 +618,20 @@ PHPX_METHOD(Swoole_ZooKeeper, setAcl) {
     struct ACL_vector *zookeeper_acl;
     QueryResult result;
     long version = -1;
-    //至少有一个参数
+    // 至少有一个参数
     if (args.count() < 1) {
         error(E_WARNING, "must be have one param");
     fail:
-        retval = false;
-        return;
+        return false;
     }
 
-    //如果第一个参数不是一个字符串
+    // 如果第一个参数不是一个字符串
     if (!(args[0].isString())) {
         error(E_WARNING, "first param must be string");
         goto fail;
     }
 
-    //版本号必须是一个整数
+    // 版本号必须是一个整数
     if (args.count() > 1 && args.count() == 2) {
         if (!(args[1].isArray())) {
             error(E_WARNING, "second param must be array");
@@ -650,16 +656,16 @@ PHPX_METHOD(Swoole_ZooKeeper, setAcl) {
 
     zhandle_t *zh = get_class_handle(_this);
     if (!zh) {
-        return;
+        return nullptr;
     }
     int rc = zoo_aset_acl(zh, args[0].toCString(), version, zookeeper_acl, my_set_acl_completion, &result);
     free_acl_struct(zookeeper_acl);
     if (rc) {
-        retval = false;
         _this.set("errCode", rc);
+        return false;
     } else {
         zk_dispatch(_this, zh, result);
-        retval = result.retval;
+        return result.retval;
     }
 }
 
@@ -667,13 +673,14 @@ PHPX_METHOD(Swoole_ZooKeeper, watch) {
     zhandle_t *zh = get_class_handle(_this);
     QueryResult result;
     if (!zh) {
-        return;
+        return nullptr;
     }
     int rc = zoo_awget(zh, args[0].toCString(), watch_func, _this.ptr(), my_silent_data_completion, &result);
     if (rc) {
-        retval = false;
+        return false;
     } else {
         zk_dispatch(_this, zh, result);
+        return nullptr;
     }
 }
 
@@ -682,14 +689,15 @@ PHPX_METHOD(Swoole_ZooKeeper, watchChildren) {
     QueryResult result;
 
     if (!zh) {
-        return;
+        return nullptr;
     }
 
     int rc = zoo_awget_children(zh, args[0].toCString(), watch_func, _this.ptr(), my_strings_completion, &result);
     if (rc) {
-        retval = false;
+        return false;
     } else {
         zk_dispatch(_this, zh, result);
+        return true;
     }
 }
 
@@ -698,7 +706,7 @@ PHPX_METHOD(Swoole_ZooKeeper, wait) {
     QueryResult result;
 
     if (!zh) {
-        return;
+        return nullptr;
     }
 
     int fd, rc, events = ZOOKEEPER_READ;
@@ -716,13 +724,13 @@ PHPX_METHOD(Swoole_ZooKeeper, wait) {
         _error:
             _this.set("errCode", rc);
             result.retval = false;
-            return;
+            return nullptr;
         }
         if (swoole_coroutine_is_in()) {
-            if (swoole_coroutine_socket_wait_event(fd, SW_EVENT_READ, (double) tv.tv_sec + (double) tv.tv_usec / 1000000) <
-                0) {
+            if (swoole_coroutine_socket_wait_event(
+                    fd, SW_EVENT_READ, (double) tv.tv_sec + (double) tv.tv_usec / 1000000) < 0) {
                 result.retval = false;
-                return;
+                return nullptr;
             }
         } else {
             if (events & ZOOKEEPER_READ) {
@@ -747,7 +755,7 @@ PHPX_METHOD(Swoole_ZooKeeper, wait) {
             }
             if (0 == events) {
                 result.retval = false;
-                return;
+                return nullptr;
             }
         }
         rc = zookeeper_process(zh, events);
@@ -758,7 +766,7 @@ PHPX_METHOD(Swoole_ZooKeeper, wait) {
 }
 
 PHPX_EXTENSION() {
-    Extension *ext = new Extension("swoole_zookeeper", "0.0.1");
+    auto *ext = new Extension(EXT_NAME, "0.0.1");
 
     ext->onStart = [ext]() noexcept {
         ext->registerResource("zhandle_t", zookeeper_dtor);
@@ -769,7 +777,7 @@ PHPX_EXTENSION() {
         ext->registerConstant("ZOO_EPHEMERAL", ZOO_EPHEMERAL);
         ext->registerConstant("ZOO_SEQUENCE", ZOO_SEQUENCE);
 
-        Class *c = new Class("Swoole_ZooKeeper");
+        auto *c = new Class("Swoole\\ZooKeeper");
         c->addProperty("errCode", Variant(0), PUBLIC);
         c->addProperty("logStream", Variant(), PRIVATE);
         c->addProperty("watcher", Variant(), PRIVATE);
@@ -784,7 +792,7 @@ PHPX_EXTENSION() {
         c->addConstant("LOG_LEVEL_WARN", ZOO_LOG_LEVEL_WARN);
         c->addConstant("LOG_LEVEL_INFO", ZOO_LOG_LEVEL_INFO);
         c->addConstant("LOG_LEVEL_DEBUG", ZOO_LOG_LEVEL_DEBUG);
-        c->alias("Swoole\\ZooKeeper");
+        c->alias("swoole_zookeeper");
 
         c->registerFunctions(class_Swoole_ZooKeeper_methods);
 

@@ -1,6 +1,3 @@
-//
-// Created by zhanglei on 19-4-23.
-//
 #include "zklib.h"
 #include "phpx.h"
 
@@ -49,7 +46,7 @@ void convert_acl_to_array(Array *destArray, struct ACL_vector *acl) {
     }
 }
 
-////把一个数组转化为acl结构体,由于接口对外需要严格检查数据结构
+//// 把一个数组转化为acl结构体,由于接口对外需要严格检查数据结构
 bool convert_array_to_acl(Array *param_array, struct ACL_vector *zookeeper_acl) {
     Variant tmp_unit_check;
     //初始化结构体
@@ -76,8 +73,10 @@ bool convert_array_to_acl(Array *param_array, struct ACL_vector *zookeeper_acl) 
         tmp_unit_check = acl_unit_array.get("id");
         Array acl_unit_array_id(tmp_unit_check);
         zookeeper_acl_unit[i].perms = (int32_t) acl_unit_array.get("perms").toInt();
-        acl_unit.id = acl_unit_array_id.get("id").toCString();
-        acl_unit.scheme = acl_unit_array_id.get("scheme").toCString();
+        auto id = acl_unit_array_id.get("id").toStdString();
+        acl_unit.id = estrndup(id.c_str(), id.length());
+        auto scheme = acl_unit_array_id.get("scheme").toStdString();
+        acl_unit.scheme = estrndup(scheme.c_str(), scheme.length());
         zookeeper_acl_unit[i].id = acl_unit;
     }
     zookeeper_acl->data = zookeeper_acl_unit;
@@ -135,7 +134,7 @@ struct ACL_vector *convert_array_to_acl(Array *param_array) {
         if (!scheme.isString()) {
             return nullptr;
         }
-        std::string std_scheme = scheme.toString();
+        std::string std_scheme = scheme.toStdString();
         char *scheme_buf = (char *) emalloc(std_scheme.length() + 1);
         bzero(scheme_buf, strlen(scheme_buf) + 1);
         strcpy(scheme_buf, std_scheme.c_str());
@@ -147,7 +146,7 @@ struct ACL_vector *convert_array_to_acl(Array *param_array) {
         if (!scheme.isString()) {
             return nullptr;
         }
-        std::string std_acl_struct_id = acl_struct_id.toString();
+        std::string std_acl_struct_id = acl_struct_id.toStdString();
         char *acl_struct_id_buf = (char *) emalloc(std_acl_struct_id.length() + 1);
         bzero(acl_struct_id_buf, (std_acl_struct_id.length()) + 1);
         strcpy(acl_struct_id_buf, std_acl_struct_id.c_str());
@@ -164,8 +163,8 @@ struct ACL_vector *convert_array_to_acl(Array *param_array) {
 bool free_acl_struct(struct ACL_vector *acl_vector) {
     if (acl_vector && acl_vector->data) {
         for (int i = 0; i < acl_vector->count; i++) {
-            efree((acl_vector->data + i)->id.id);
-            efree((acl_vector->data + i)->id.scheme);
+            efree(const_cast<char *>((acl_vector->data + i)->id.id));
+            efree(const_cast<char *>((acl_vector->data + i)->id.scheme));
             efree((acl_vector->data + i));
         }
         efree(acl_vector->data);

@@ -10,3 +10,11 @@ CMakeLists.txt
 core
 /.vscode
 /data
+/.cmake
+/CMakeCache.txt
+/cmake_install.cmake
+/CMakeFiles
+/Makefile
+/Testing
+/composer.lock
+/vendor
